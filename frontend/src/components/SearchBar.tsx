@@ -470,16 +470,17 @@ export function SearchBar({ url, loading, onUrlChange, onFetch, onFetchUrl, sear
     ];
     return (<div className="space-y-4">
       <div className="flex gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" className="shrink-0" onClick={() => onSearchModeChange(!searchMode)}>
-              {searchMode ? (<Link className="h-4 w-4"/>) : (<Search className="h-4 w-4"/>)}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{searchMode ? "Fetch Mode" : "Search Mode"}</p>
-          </TooltipContent>
-        </Tooltip>
+        {/* Segmented mode switch — clearer than the old icon toggle. */}
+        <div className="flex shrink-0 rounded-md border bg-muted/40 p-0.5">
+          <button type="button" onClick={() => onSearchModeChange(true)}
+            className={`flex items-center gap-1.5 rounded px-3 text-sm font-medium transition-colors cursor-pointer ${searchMode ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+            <Search className="h-3.5 w-3.5"/> Search
+          </button>
+          <button type="button" onClick={() => onSearchModeChange(false)}
+            className={`flex items-center gap-1.5 rounded px-3 text-sm font-medium transition-colors cursor-pointer ${!searchMode ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+            <Link className="h-3.5 w-3.5"/> URL
+          </button>
+        </div>
 
         <div className="relative flex-1">
           {!searchMode ? (<>
