@@ -7,6 +7,7 @@ package backend
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -58,6 +59,29 @@ func normalizeMatch(s string) string {
 // nested qualifiers ("[International Version (Explicit)]") strip whole.
 var reTrailBracket = regexp.MustCompile(`\s*[(\[].*[)\]]\s*$`)
 
+// Words that mark a DIFFERENT recording (not just a different master/edit).
+// A studio track must never satisfy a live/remix/acoustic ref or vice versa,
+// so titles whose variant signatures differ score zero on the title axis.
+var reVariantWords = regexp.MustCompile(`\b(live|remix(?:ed)?|acoustic|demo|instrumental|unplugged|a ?cappella|acapella|karaoke|cover|orchestral|stripped|reprise|sped ?up|slowed)\b`)
+
+func variantSignature(s string) string {
+	words := reVariantWords.FindAllString(normalizeMatch(s), -1)
+	if len(words) == 0 {
+		return ""
+	}
+	seen := map[string]bool{}
+	uniq := words[:0]
+	for _, w := range words {
+		w = strings.ReplaceAll(w, " ", "")
+		if !seen[w] {
+			seen[w] = true
+			uniq = append(uniq, w)
+		}
+	}
+	sort.Strings(uniq)
+	return strings.Join(uniq, "|")
+}
+
 // stripVersionTail drops trailing "(...)"/"[...]" qualifiers and a final
 // " - Xxx" segment ("Down - Single Version" → "Down") for tolerant title
 // comparison. Works on the raw name, before normalizeMatch collapses dashes.
@@ -79,6 +103,7 @@ type localMatchTrack struct {
 	track         LibraryTrack
 	normTitle     string
 	normTitleCore string
+	variantSig    string
 	normArtists   map[string]bool
 	normAlbum     string
 	durationMs    int64
@@ -113,6 +138,7 @@ func loadLocalForMatch() ([]localMatchTrack, error) {
 				track:         t,
 				normTitle:     normalizeMatch(t.Title),
 				normTitleCore: normalizeMatch(stripVersionTail(t.Title)),
+				variantSig:    variantSignature(t.Title),
 				normArtists:   map[string]bool{},
 				normAlbum:     normalizeMatch(t.Album),
 				durationMs:    int64(t.Duration) * 1000,
@@ -133,10 +159,13 @@ func containsEither(a, b string) bool {
 	return a == b || (a != "" && strings.Contains(b, a)) || (b != "" && strings.Contains(a, b))
 }
 
-func scoreMatch(refTitle, refTitleCore string, refArtists map[string]bool, refAlbum string, refDur int64, l *localMatchTrack) float64 {
+func scoreMatch(refTitle, refTitleCore, refVariantSig string, refArtists map[string]bool, refAlbum string, refDur int64, l *localMatchTrack) float64 {
 	var score float64
-	// Title (0.4)
-	if refTitle == l.normTitle {
+	// Title (0.4) — but a live/remix/acoustic marker on one side only means a
+	// different recording: no title credit at all, however similar the names.
+	if refVariantSig != l.variantSig {
+		// score += 0
+	} else if refTitle == l.normTitle {
 		score += 0.4
 	} else if refTitleCore != "" && refTitleCore == l.normTitleCore {
 		// Same song, different version qualifier ("Down - Single Version" vs
@@ -198,6 +227,7 @@ func MatchPlaylistTracks(refs []SpotifyTrackRef) ([]MatchedTrack, error) {
 	for _, ref := range refs {
 		refTitle := normalizeMatch(ref.Name)
 		refTitleCore := normalizeMatch(stripVersionTail(ref.Name))
+		refVariantSig := variantSignature(ref.Name)
 		refArtists := map[string]bool{}
 		for _, a := range ref.ArtistNames {
 			if n := normalizeMatch(a); n != "" {
@@ -209,7 +239,7 @@ func MatchPlaylistTracks(refs []SpotifyTrackRef) ([]MatchedTrack, error) {
 		var best *LibraryTrack
 		bestScore := 0.0
 		for i := range locals {
-			s := scoreMatch(refTitle, refTitleCore, refArtists, refAlbum, ref.DurationMs, &locals[i])
+			s := scoreMatch(refTitle, refTitleCore, refVariantSig, refArtists, refAlbum, ref.DurationMs, &locals[i])
 			if s > bestScore && s >= 0.5 {
 				bestScore = s
 				best = &locals[i].track
