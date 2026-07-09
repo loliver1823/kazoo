@@ -49,6 +49,10 @@ Built with Go + [Wails](https://wails.io) and React. Windows · macOS · Linux.
 |---|---|
 | ![Library](docs/screenshots/library.png) | ![Artist](docs/screenshots/artist.png) |
 
+**Artist releases, grouped by type — Albums, EPs, Compilations, Live:**
+
+![Artist releases](docs/screenshots/artist-releases.png)
+
 | Search & download | Playlist sync |
 |---|---|
 | ![Search](docs/screenshots/search.png) | ![Playlist sync](docs/screenshots/playlist-sync.png) |
