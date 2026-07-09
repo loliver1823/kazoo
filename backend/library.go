@@ -388,20 +388,36 @@ func parseArtists(tags map[string][]string, title, albumArtist string) (display 
 	if len(rawArtists) == 0 {
 		rawArtists = tags["ARTISTS"]
 	}
+	var all []string
 	for _, raw := range rawArtists {
 		if f := extractFeatured(raw); len(f) > 0 {
 			feat = append(feat, f...)
 			raw = stripFeatured(raw)
 		}
-		primaries = append(primaries, splitArtists(raw)...)
+		all = append(all, splitArtists(raw)...)
 	}
-
-	// A "(feat. X)" credit in the title outranks the artist tag: X is a guest
-	// even when the tag lists them, else their page claims the album as own.
 	featSet := map[string]bool{}
 	for _, f := range feat {
 		featSet[normKey(f)] = true
 	}
+
+	// Only the FIRST artist in the tag is the primary credit. Later artists
+	// named in the title's feat clause are guests; the rest are collaborators
+	// — co-owners of the song, not features. "State Champs; Simple Plan" with
+	// title "… (feat. We The Kings)" keeps Simple Plan a collaborator and
+	// We The Kings a feature; both classify as Appears On for the album shelf.
+	var collabs []string
+	if len(all) > 0 {
+		primaries = all[:1]
+		for _, extra := range all[1:] {
+			if !featSet[normKey(extra)] {
+				collabs = append(collabs, extra)
+			}
+		}
+	}
+
+	// A "(feat. X)" credit in the title outranks the artist tag: X is a guest
+	// even when listed first, else their page claims the album as own.
 	kept := primaries[:0]
 	for _, p := range primaries {
 		if !featSet[normKey(p)] {
@@ -415,6 +431,11 @@ func parseArtists(tags map[string][]string, title, albumArtist string) (display 
 		primarySet[normKey(p)] = true
 		add(p, RolePrimary)
 	}
+	for _, c := range collabs {
+		if !primarySet[normKey(c)] {
+			add(c, RoleCollab)
+		}
+	}
 	if albumArtist != "" && !primarySet[normKey(albumArtist)] {
 		add(albumArtist, RoleAlbumArtist)
 	}
@@ -425,7 +446,7 @@ func parseArtists(tags map[string][]string, title, albumArtist string) (display 
 		}
 	}
 
-	display = strings.Join(primaries, ", ")
+	display = strings.Join(append(append([]string{}, primaries...), collabs...), ", ")
 	if display == "" {
 		display = albumArtist
 	}
@@ -1173,17 +1194,28 @@ type LibraryFolder struct {
 // RescanAllFolders walks every library folder incrementally (Plex-style):
 // unchanged files are skipped by modification time, so only new files and
 // files whose tags were edited get re-read.
+// roleSchemaVersion bumps whenever artist-role derivation changes (e.g. the
+// first-artist-is-primary rule). A mismatch forces one full tag re-read so
+// existing rows pick up the new rules; unchanged files are skipped otherwise.
+const roleSchemaVersion = 3
+
 func RescanAllFolders(onProgress func(done, total int, current string)) (ScanResult, error) {
 	var agg ScanResult
 	if libDB == nil {
 		return agg, fmt.Errorf("library not initialized")
+	}
+	force := false
+	var uv int
+	if libDB.QueryRow("PRAGMA user_version").Scan(&uv) == nil && uv < roleSchemaVersion {
+		force = true
+		Dbgf("role schema %d -> %d: forcing full rescan\n", uv, roleSchemaVersion)
 	}
 	folders, err := GetLibraryFolders()
 	if err != nil {
 		return agg, err
 	}
 	for _, f := range folders {
-		r, err := ScanLibraryFolder(f.Path, false, onProgress)
+		r, err := ScanLibraryFolder(f.Path, force, onProgress)
 		if err != nil {
 			return agg, err
 		}
@@ -1192,6 +1224,9 @@ func RescanAllFolders(onProgress func(done, total int, current string)) (ScanRes
 		agg.Skipped += r.Skipped
 		agg.Removed += r.Removed
 		agg.Total += r.Total
+	}
+	if force {
+		libDB.Exec(fmt.Sprintf("PRAGMA user_version = %d", roleSchemaVersion))
 	}
 	return agg, nil
 }
