@@ -129,6 +129,10 @@ func SanitizePersistedConfigSettings() error {
 }
 
 func GetDefaultMusicPath() string {
+	// The Android shell points this at app-scoped external storage.
+	if p := strings.TrimSpace(os.Getenv("SPINDLE_DEFAULT_MUSIC_DIR")); p != "" {
+		return p
+	}
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {

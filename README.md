@@ -8,7 +8,7 @@ Organize a pristine FLAC library, browse it like a streaming app, and fill in th
 Spindle finds what's missing and downloads it in true lossless quality, tagged and filed
 exactly where it belongs.
 
-Built with Go + [Wails](https://wails.io) and React. Windows · macOS · Linux.
+Built with Go + [Wails](https://wails.io) and React. Windows · macOS · Linux · Android (beta).
 
 </div>
 
@@ -28,6 +28,7 @@ Built with Go + [Wails](https://wails.io) and React. Windows · macOS · Linux.
 ### ⬇️ Downloading
 - **Search anything** — artists, albums, tracks, playlists, even public profiles — and download it in FLAC (up to 24-bit hi-res where available)
 - **Multiple sources** with automatic fallback, plus a direct Qobuz catalog search for music that's no longer on streaming
+- **Artists who left Spotify still work** — when Spotify's listing is sparse (or missing entirely), browse the artist's complete discography from Qobuz's catalog and download all of it
 - **Library-aware** — existing files are detected and skipped; everything lands in your `Artist/[Year] Album/NN - Title` structure no matter where the download started
 - **Real queue** — persistent across restarts, pause/resume, retry failed, multi-select removal, animated per-track progress, and add-while-downloading
 - **Server-break aware** — when a source takes a scheduled break, the queue waits it out and resumes by itself instead of failing
@@ -36,6 +37,7 @@ Built with Go + [Wails](https://wails.io) and React. Windows · macOS · Linux.
 
 ### 🎯 Playlist Sync
 - Track any Spotify playlist against your library — owned tracks light up, missing ones are dulled out
+- Synced playlists live in **Library → Playlists**, right next to your own
 - Download just the missing songs with one click; they file into your normal artist/album structure
 - **Fix match** lets you pin a playlist or popular track to the exact local file it should count as
 
@@ -71,6 +73,9 @@ Grab the latest build from [Releases](../../releases):
 | macOS | `Spindle.dmg` |
 | Linux x64 | `Spindle.AppImage` |
 | Linux ARM64 | `Spindle-ARM.AppImage` |
+| Android (beta) | `Spindle.apk` (arm64, sideload) |
+
+Desktop builds check for updates on launch and can update themselves in place.
 
 First launch: add your music folder under **Library → Manage folders**. Spindle scans it,
 builds the index, and keeps watching for changes. Your first library folder doubles as the
@@ -91,6 +96,26 @@ cd frontend && pnpm install && cd ..
 wails dev      # live-reload development build
 wails build    # production binary in build/bin
 ```
+
+### Headless / server mode
+
+The same binary can run without a window — the full app served over HTTP for any browser on the machine:
+
+```bash
+spindle serve 127.0.0.1:8899
+```
+
+### Android
+
+The backend is pure Go, so it cross-compiles to a native Android binary that a thin WebView shell embeds — same app, same UI, running on-device:
+
+```powershell
+wails build                       # produces frontend/dist
+.\scripts\build-android.ps1       # cross-compiles the server + assembles the APK
+# → android-app/app/build/outputs/apk/debug/app-debug.apk (arm64)
+```
+
+Requires a JDK 17+, the Android SDK, and Gradle 8.5+. Downloads land in the app's scoped storage (`Android/data/wtf.spindle/files/Music`) by default.
 
 ## ⚙️ How files are organized
 
