@@ -150,22 +150,20 @@ jobs:
       - name: Create DMG
         run: |
           mkdir -p dist
-          # Install create-dmg if not available
-          brew install create-dmg || true
-
-          # Create DMG
-          create-dmg \
-            --volname "Spindle" \
-            --window-pos 200 120 \
-            --window-size 600 400 \
-            --icon-size 100 \
-            --icon "Spindle.app" 175 120 \
-            --hide-extension "Spindle.app" \
-            --app-drop-link 425 120 \
-            "dist/Spindle.dmg" \
-            "build/bin/Spindle.app" || \
-          # Fallback to hdiutil if create-dmg fails
-          hdiutil create -volname Spindle -srcfolder build/bin/Spindle.app -ov -format UDZO dist/Spindle.dmg
+          # Wails names the bundle from the project name, so locate it
+          # dynamically instead of hardcoding. Stage it as Spindle.app with an
+          # Applications shortcut, then pack with hdiutil (create-dmg's Finder
+          # scripting is flaky on hosted runners).
+          APP_PATH=$(/usr/bin/find build/bin -maxdepth 1 -name "*.app" -print -quit)
+          if [ -z "$APP_PATH" ]; then
+            echo "No .app bundle found in build/bin:" && ls -la build/bin
+            exit 1
+          fi
+          echo "Packaging $APP_PATH"
+          mkdir -p dmg-staging
+          cp -R "$APP_PATH" "dmg-staging/Spindle.app"
+          ln -s /Applications dmg-staging/Applications
+          hdiutil create -volname Spindle -srcfolder dmg-staging -ov -format UDZO dist/Spindle.dmg
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
