@@ -39,16 +39,49 @@ type PlaylistMatchResult struct {
 
 var reNormMatch = regexp.MustCompile(`[\s\-_]+`)
 
+// Tags and Spotify disagree on punctuation: libraries often carry Unicode
+// hyphens (blink‐182, U+2010) and curly apostrophes (M+M’s) where Spotify
+// sends ASCII. Fold them before comparing or artist overlap scores zero.
+var matchCharFolder = strings.NewReplacer(
+	"‐", "-", "‑", "-", "‒", "-", "–", "-", "—", "-", "―", "-",
+	"‘", "'", "’", "'", "‛", "'",
+	"“", "\"", "”", "\"",
+	" ", " ",
+)
+
 func normalizeMatch(s string) string {
-	return strings.TrimSpace(reNormMatch.ReplaceAllString(strings.ToLower(s), " "))
+	s = matchCharFolder.Replace(strings.ToLower(s))
+	return strings.TrimSpace(reNormMatch.ReplaceAllString(s, " "))
+}
+
+// Greedy from the first opening bracket to a closing bracket at the end, so
+// nested qualifiers ("[International Version (Explicit)]") strip whole.
+var reTrailBracket = regexp.MustCompile(`\s*[(\[].*[)\]]\s*$`)
+
+// stripVersionTail drops trailing "(...)"/"[...]" qualifiers and a final
+// " - Xxx" segment ("Down - Single Version" → "Down") for tolerant title
+// comparison. Works on the raw name, before normalizeMatch collapses dashes.
+func stripVersionTail(s string) string {
+	for {
+		t := strings.TrimSpace(reTrailBracket.ReplaceAllString(s, ""))
+		if t == s || t == "" {
+			break
+		}
+		s = t
+	}
+	if i := strings.LastIndex(s, " - "); i > 0 {
+		s = s[:i]
+	}
+	return strings.TrimSpace(s)
 }
 
 type localMatchTrack struct {
-	track       LibraryTrack
-	normTitle   string
-	normArtists map[string]bool
-	normAlbum   string
-	durationMs  int64
+	track         LibraryTrack
+	normTitle     string
+	normTitleCore string
+	normArtists   map[string]bool
+	normAlbum     string
+	durationMs    int64
 }
 
 func loadLocalForMatch() ([]localMatchTrack, error) {
@@ -77,11 +110,12 @@ func loadLocalForMatch() ([]localMatchTrack, error) {
 		}
 		if t.ID != curID {
 			out = append(out, localMatchTrack{
-				track:       t,
-				normTitle:   normalizeMatch(t.Title),
-				normArtists: map[string]bool{},
-				normAlbum:   normalizeMatch(t.Album),
-				durationMs:  int64(t.Duration) * 1000,
+				track:         t,
+				normTitle:     normalizeMatch(t.Title),
+				normTitleCore: normalizeMatch(stripVersionTail(t.Title)),
+				normArtists:   map[string]bool{},
+				normAlbum:     normalizeMatch(t.Album),
+				durationMs:    int64(t.Duration) * 1000,
 			})
 			cur = &out[len(out)-1]
 			curID = t.ID
@@ -99,11 +133,15 @@ func containsEither(a, b string) bool {
 	return a == b || (a != "" && strings.Contains(b, a)) || (b != "" && strings.Contains(a, b))
 }
 
-func scoreMatch(refTitle string, refArtists map[string]bool, refAlbum string, refDur int64, l *localMatchTrack) float64 {
+func scoreMatch(refTitle, refTitleCore string, refArtists map[string]bool, refAlbum string, refDur int64, l *localMatchTrack) float64 {
 	var score float64
 	// Title (0.4)
 	if refTitle == l.normTitle {
 		score += 0.4
+	} else if refTitleCore != "" && refTitleCore == l.normTitleCore {
+		// Same song, different version qualifier ("Down - Single Version" vs
+		// "Down") — near-exact so it survives even without album agreement.
+		score += 0.35
 	} else if l.normTitle != "" && (strings.Contains(l.normTitle, refTitle) || strings.Contains(refTitle, l.normTitle)) {
 		score += 0.25
 	} else if strings.ReplaceAll(refTitle, " ", "") == strings.ReplaceAll(l.normTitle, " ", "") {
@@ -159,6 +197,7 @@ func MatchPlaylistTracks(refs []SpotifyTrackRef) ([]MatchedTrack, error) {
 	out := make([]MatchedTrack, 0, len(refs))
 	for _, ref := range refs {
 		refTitle := normalizeMatch(ref.Name)
+		refTitleCore := normalizeMatch(stripVersionTail(ref.Name))
 		refArtists := map[string]bool{}
 		for _, a := range ref.ArtistNames {
 			if n := normalizeMatch(a); n != "" {
@@ -170,7 +209,7 @@ func MatchPlaylistTracks(refs []SpotifyTrackRef) ([]MatchedTrack, error) {
 		var best *LibraryTrack
 		bestScore := 0.0
 		for i := range locals {
-			s := scoreMatch(refTitle, refArtists, refAlbum, ref.DurationMs, &locals[i])
+			s := scoreMatch(refTitle, refTitleCore, refArtists, refAlbum, ref.DurationMs, &locals[i])
 			if s > bestScore && s >= 0.5 {
 				bestScore = s
 				best = &locals[i].track
