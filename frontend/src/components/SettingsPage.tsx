@@ -74,7 +74,7 @@ export function SettingsPage({ onUnsavedChangesChange, onResetRequest, }: Settin
     }, [tempSettings.themeMode, tempSettings.theme, tempSettings.fontFamily, tempSettings.customFonts]);
     useEffect(() => {
         if (showAddFontDialog && parsedAddFont) {
-            loadGoogleFontUrl(parsedAddFont.url, "spindle-add-font-preview");
+            loadGoogleFontUrl(parsedAddFont.url, "kazoo-add-font-preview");
         }
     }, [showAddFontDialog, parsedAddFont]);
     useEffect(() => {

@@ -19,7 +19,7 @@ import (
 // downloaded and opened, since replacing a mounted .app bundle in place is
 // not reliable without signing.
 
-const updateRepo = "loliver1823/spindle"
+const updateRepo = "loliver1823/kazoo"
 
 type UpdateInfo struct {
 	Available      bool   `json:"available"`
@@ -82,14 +82,14 @@ func versionNewer(latest, current string) bool {
 func expectedAssetName() string {
 	switch runtime.GOOS {
 	case "windows":
-		return "Spindle.exe"
+		return "Kazoo.exe"
 	case "darwin":
-		return "Spindle.dmg"
+		return "Kazoo.dmg"
 	default:
 		if runtime.GOARCH == "arm64" {
-			return "Spindle-ARM.AppImage"
+			return "Kazoo-ARM.AppImage"
 		}
-		return "Spindle.AppImage"
+		return "Kazoo.AppImage"
 	}
 }
 
@@ -104,7 +104,7 @@ func CheckForUpdate() (UpdateInfo, error) {
 	if err != nil {
 		return info, err
 	}
-	req.Header.Set("User-Agent", "Spindle Music Manager/"+AppVersion)
+	req.Header.Set("User-Agent", "Kazoo Music Manager/"+AppVersion)
 	req.Header.Set("Accept", "application/vnd.github+json")
 	resp, err := client.Do(req)
 	if err != nil {
@@ -142,7 +142,7 @@ func downloadUpdateAsset(url, dest string) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "Spindle Music Manager/"+AppVersion)
+	req.Header.Set("User-Agent", "Kazoo Music Manager/"+AppVersion)
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -179,7 +179,7 @@ func ApplyUpdate(assetURL string) (restarting bool, message string, err error) {
 		}
 		// A helper batch script waits for this process to release the exe,
 		// swaps the files and relaunches.
-		bat := filepath.Join(os.TempDir(), "spindle-update.bat")
+		bat := filepath.Join(os.TempDir(), "kazoo-update.bat")
 		script := "@echo off\r\n" +
 			":try\r\n" +
 			"timeout /t 1 /nobreak >nul\r\n" +
@@ -221,13 +221,13 @@ func ApplyUpdate(assetURL string) (restarting bool, message string, err error) {
 		return true, "Restarting to finish the update…", nil
 
 	default: // darwin
-		dest := filepath.Join(os.TempDir(), "Spindle.dmg")
+		dest := filepath.Join(os.TempDir(), "Kazoo.dmg")
 		if err := downloadUpdateAsset(assetURL, dest); err != nil {
 			return false, "", err
 		}
 		if err := exec.Command("open", dest).Start(); err != nil {
 			return false, "", err
 		}
-		return false, "Update downloaded — drag Spindle to Applications to finish.", nil
+		return false, "Update downloaded — drag Kazoo to Applications to finish.", nil
 	}
 }

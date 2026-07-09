@@ -46,7 +46,7 @@ const BIT_DEPTH_OPTIONS = [
     { value: "16", label: "16-bit" },
     { value: "24", label: "24-bit" },
 ];
-const STORAGE_KEY = "spindle_audio_resampler_state";
+const STORAGE_KEY = "kazoo_audio_resampler_state";
 export function AudioResamplerPage() {
     const [files, setFiles] = useState<AudioFile[]>(() => {
         try {

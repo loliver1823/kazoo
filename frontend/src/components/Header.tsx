@@ -1,5 +1,5 @@
-// Placeholder "spindle" mark (a bobbin/spool) — swap for a real logo later.
-function SpindleMark({ className }: { className?: string }) {
+// Placeholder "kazoo" mark (a bobbin/spool) — swap for a real logo later.
+function KazooMark({ className }: { className?: string }) {
     return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className={className}>
             <line x1="12" y1="3.5" x2="12" y2="20.5" />
@@ -18,16 +18,16 @@ export function Header() {
                 <button
                     type="button"
                     onClick={reload}
-                    aria-label="Reload Spindle"
+                    aria-label="Reload Kazoo"
                     className="group cursor-pointer rounded-2xl border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                 >
                     <span className="flex h-12 w-12 items-center justify-center rounded-[15px] bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/25 transition-transform group-hover:scale-105">
-                        <SpindleMark className="h-7 w-7" />
+                        <KazooMark className="h-7 w-7" />
                     </span>
                 </button>
                 <button type="button" onClick={reload} className="cursor-pointer rounded-sm border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60">
                     <h1 className="text-4xl font-bold tracking-tight">
-                        Spindle<span className="text-muted-foreground/60 font-normal"> Music</span>
+                        Kazoo<span className="text-muted-foreground/60 font-normal"> Music</span>
                     </h1>
                 </button>
             </div>

@@ -1,7 +1,7 @@
-# Builds the Spindle Android APK:
+# Builds the Kazoo Android APK:
 #   1. wails build (or any prior build) must have produced frontend/dist
 #   2. cross-compile the Go server for arm64 (pure Go, no NDK needed)
-#   3. package it as libspindle.so inside the WebView shell APK
+#   3. package it as libkazoo.so inside the WebView shell APK
 #
 # Requires: Go, JDK 17+, Android SDK (sdk.dir in android-app/local.properties
 # or ANDROID_HOME), Gradle 8.5+ on PATH or at $env:GRADLE_BIN.
@@ -16,7 +16,7 @@ if (-not (Test-Path "frontend/dist/index.html")) {
 
 Write-Host "Cross-compiling Go server for android/arm64..."
 $env:GOOS = "android"; $env:GOARCH = "arm64"; $env:CGO_ENABLED = "0"
-go build -o "android-app/app/src/main/jniLibs/arm64-v8a/libspindle.so" .
+go build -o "android-app/app/src/main/jniLibs/arm64-v8a/libkazoo.so" .
 Remove-Item Env:GOOS, Env:GOARCH, Env:CGO_ENABLED
 
 Write-Host "Assembling APK..."

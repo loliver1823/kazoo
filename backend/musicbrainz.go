@@ -180,7 +180,7 @@ func queryMusicBrainzRecordings(client *http.Client, query string) (*MusicBrainz
 		return nil, err
 	}
 
-	req.Header.Set("User-Agent", fmt.Sprintf("Spindle Music Manager/%s ( https://github.com/loliver1823 )", AppVersion))
+	req.Header.Set("User-Agent", fmt.Sprintf("Kazoo Music Manager/%s ( https://github.com/loliver1823 )", AppVersion))
 	req.Header.Set("Accept", "application/json")
 
 	var lastErr error

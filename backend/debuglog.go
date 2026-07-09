@@ -6,9 +6,9 @@ import (
 )
 
 // Verbose download/API tracing is off by default so production runs don't
-// spam stdout (some traces include request URLs). Set SPINDLE_DEBUG=1 to
+// spam stdout (some traces include request URLs). Set KAZOO_DEBUG=1 to
 // re-enable the full firehose when troubleshooting.
-var debugEnabled = os.Getenv("SPINDLE_DEBUG") == "1"
+var debugEnabled = os.Getenv("KAZOO_DEBUG") == "1"
 
 func Dbgln(args ...any) {
 	if debugEnabled {

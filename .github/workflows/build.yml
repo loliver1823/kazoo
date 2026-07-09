@@ -90,18 +90,18 @@ jobs:
 
       - name: Compress with UPX
         run: |
-          upx --best --lzma "build\bin\Spindle.exe"
+          upx --best --lzma "build\bin\Kazoo.exe"
 
       - name: Prepare artifacts
         run: |
           mkdir -p dist
-          Copy-Item -Path "build\bin\Spindle.exe" -Destination "dist\Spindle.exe"
+          Copy-Item -Path "build\bin\Kazoo.exe" -Destination "dist\Kazoo.exe"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-portable
-          path: dist/Spindle.exe
+          path: dist/Kazoo.exe
           retention-days: 7
 
   build-macos:
@@ -179,7 +179,7 @@ jobs:
         run: |
           mkdir -p dist
           # Wails names the bundle from the project name, so locate it
-          # dynamically instead of hardcoding. Stage it as Spindle.app with an
+          # dynamically instead of hardcoding. Stage it as Kazoo.app with an
           # Applications shortcut, then pack with hdiutil (create-dmg's Finder
           # scripting is flaky on hosted runners).
           APP_PATH=$(/usr/bin/find build/bin -maxdepth 1 -name "*.app" -print -quit)
@@ -189,15 +189,15 @@ jobs:
           fi
           echo "Packaging $APP_PATH"
           mkdir -p dmg-staging
-          cp -R "$APP_PATH" "dmg-staging/Spindle.app"
+          cp -R "$APP_PATH" "dmg-staging/Kazoo.app"
           ln -s /Applications dmg-staging/Applications
-          hdiutil create -volname Spindle -srcfolder dmg-staging -ov -format UDZO dist/Spindle.dmg
+          hdiutil create -volname Kazoo -srcfolder dmg-staging -ov -format UDZO dist/Kazoo.dmg
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macos-portable
-          path: dist/Spindle.dmg
+          path: dist/Kazoo.dmg
           retention-days: 7
 
   build-linux:
@@ -211,7 +211,7 @@ jobs:
             runner: ubuntu-24.04
             wails_platform: linux/amd64
             artifact_name: linux-portable
-            output_name: Spindle.AppImage
+            output_name: Kazoo.AppImage
             appimage_arch: x86_64
             appimagetool_arch: x86_64
             pkgconfig_dir: /usr/lib/x86_64-linux-gnu/pkgconfig
@@ -219,7 +219,7 @@ jobs:
             runner: ubuntu-24.04-arm
             wails_platform: linux/arm64
             artifact_name: linux-portable-arm
-            output_name: Spindle-ARM.AppImage
+            output_name: Kazoo-ARM.AppImage
             appimage_arch: aarch64
             appimagetool_arch: aarch64
             pkgconfig_dir: /usr/lib/aarch64-linux-gnu/pkgconfig
@@ -301,7 +301,7 @@ jobs:
 
       - name: Compress with UPX
         run: |
-          upx --best --lzma build/bin/Spindle
+          upx --best --lzma build/bin/Kazoo
 
       - name: Cache appimagetool
         id: cache-appimagetool
@@ -326,34 +326,34 @@ jobs:
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
           # Copy binary
-          cp build/bin/Spindle AppDir/usr/bin/
+          cp build/bin/Kazoo AppDir/usr/bin/
 
           # Create desktop file
-          cat > AppDir/spindle.desktop << 'EOF'
+          cat > AppDir/kazoo.desktop << 'EOF'
           [Desktop Entry]
-          Name=Spindle
-          Exec=Spindle
-          Icon=spindle
+          Name=Kazoo
+          Exec=Kazoo
+          Icon=kazoo
           Type=Application
           Categories=Audio;AudioVideo;
           Comment=Music library manager with lossless downloading
           EOF
 
-          cp AppDir/spindle.desktop AppDir/usr/share/applications/
+          cp AppDir/kazoo.desktop AppDir/usr/share/applications/
 
           # Create icon
           if [ -f "build/appicon.png" ]; then
-            convert build/appicon.png -resize 256x256 AppDir/spindle.png
+            convert build/appicon.png -resize 256x256 AppDir/kazoo.png
           elif [ -f "frontend/public/icon.svg" ]; then
-            convert -background none -size 256x256 frontend/public/icon.svg AppDir/spindle.png
+            convert -background none -size 256x256 frontend/public/icon.svg AppDir/kazoo.png
           else
             echo "Warning: No icon found, building without icon"
           fi
 
           # Copy icon if exists
-          if [ -f "AppDir/spindle.png" ]; then
-            cp AppDir/spindle.png AppDir/usr/share/icons/hicolor/256x256/apps/
-            cp AppDir/spindle.png AppDir/.DirIcon
+          if [ -f "AppDir/kazoo.png" ]; then
+            cp AppDir/kazoo.png AppDir/usr/share/icons/hicolor/256x256/apps/
+            cp AppDir/kazoo.png AppDir/.DirIcon
           fi
 
           # Create AppRun
@@ -363,7 +363,7 @@ jobs:
           HERE=${SELF%/*}
           export PATH="${HERE}/usr/bin/:${PATH}"
           export LD_LIBRARY_PATH="${HERE}/usr/lib/:${LD_LIBRARY_PATH}"
-          exec "${HERE}/usr/bin/Spindle" "$@"
+          exec "${HERE}/usr/bin/Kazoo" "$@"
           EOF
           chmod +x AppDir/AppRun
 
@@ -442,7 +442,7 @@ jobs:
         run: |
           mkdir -p android-app/app/src/main/jniLibs/arm64-v8a
           GOOS=android GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" \
-            -o android-app/app/src/main/jniLibs/arm64-v8a/libspindle.so .
+            -o android-app/app/src/main/jniLibs/arm64-v8a/libkazoo.so .
 
       - name: Assemble APK
         working-directory: android-app
@@ -451,13 +451,13 @@ jobs:
       - name: Prepare artifact
         run: |
           mkdir -p dist
-          cp android-app/app/build/outputs/apk/debug/app-debug.apk dist/Spindle.apk
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk dist/Kazoo.apk
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: dist/Spindle.apk
+          path: dist/Kazoo.apk
           retention-days: 7
 
   create-release:
@@ -496,11 +496,11 @@ jobs:
 
             ## Downloads
 
-            - `Spindle.exe` - Windows
-            - `Spindle.dmg` - macOS
-            - `Spindle.AppImage` - Linux AMD64
-            - `Spindle-ARM.AppImage` - Linux ARM64
-            - `Spindle.apk` - Android (arm64, sideload)
+            - `Kazoo.exe` - Windows
+            - `Kazoo.dmg` - macOS
+            - `Kazoo.AppImage` - Linux AMD64
+            - `Kazoo-ARM.AppImage` - Linux ARM64
+            - `Kazoo.apk` - Android (arm64, sideload)
 
             <details>
             <summary><b>Linux Requirements</b></summary>
@@ -524,22 +524,22 @@ jobs:
 
             After installing the dependency, make the AppImage executable:
             ```bash
-            chmod +x Spindle.AppImage
-            ./Spindle.AppImage
+            chmod +x Kazoo.AppImage
+            ./Kazoo.AppImage
             ```
 
             For ARM64:
             ```bash
-            chmod +x Spindle-ARM.AppImage
-            ./Spindle-ARM.AppImage
+            chmod +x Kazoo-ARM.AppImage
+            ./Kazoo-ARM.AppImage
             ```
 
             </details>
           files: |
-            artifacts/windows-portable/Spindle.exe
-            artifacts/macos-portable/Spindle.dmg
-            artifacts/linux-portable/Spindle.AppImage
-            artifacts/linux-portable-arm/Spindle-ARM.AppImage
-            artifacts/android-apk/Spindle.apk
+            artifacts/windows-portable/Kazoo.exe
+            artifacts/macos-portable/Kazoo.dmg
+            artifacts/linux-portable/Kazoo.AppImage
+            artifacts/linux-portable-arm/Kazoo-ARM.AppImage
+            artifacts/android-apk/Kazoo.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -6,30 +6,30 @@ export interface ApiSource {
     name: string;
     url: string;
 }
-interface SpindleNextSource {
+interface KazooNextSource {
     id: string;
     name: string;
     statusKey?: string;
     statusPrefix?: string;
 }
-type SpindleNextStatusResponse = Partial<Record<string, string>>;
+type KazooNextStatusResponse = Partial<Record<string, string>>;
 export const API_SOURCES: ApiSource[] = [
     { id: "tidal", type: "tidal", name: "Tidal", url: "" },
     { id: "qobuz", type: "qobuz", name: "Qobuz", url: "" },
     { id: "amazon", type: "amazon", name: "Amazon Music", url: "" },
 ];
-export const SPINDLE_NEXT_SOURCES: SpindleNextSource[] = [
+export const KAZOO_NEXT_SOURCES: KazooNextSource[] = [
     { id: "tidal", name: "Tidal", statusPrefix: "tidal_" },
     { id: "qobuz", name: "Qobuz", statusPrefix: "qobuz_" },
     { id: "amazon", name: "Amazon Music", statusPrefix: "amazon_" },
     { id: "deezer", name: "Deezer", statusPrefix: "deezer_" },
     { id: "apple", name: "Apple Music", statusKey: "apple" },
 ];
-type SpindleStatusPayloadKind = "next" | "current";
-const SPINDLE_STATUS_MAX_ATTEMPTS = 3;
-const SPINDLE_STATUS_RETRY_DELAY_MS = 1200;
+type KazooStatusPayloadKind = "next" | "current";
+const KAZOO_STATUS_MAX_ATTEMPTS = 3;
+const KAZOO_STATUS_RETRY_DELAY_MS = 1200;
 const LogStatusConsole = (level: string, message: string): Promise<void> => (window as any)["go"]["main"]["App"]["LogStatusConsole"](level, message);
-const FetchSpindleStatusPayload = (kind: SpindleStatusPayloadKind): Promise<SpindleNextStatusResponse> => (window as any)["go"]["main"]["App"]["FetchSpindleStatusPayload"](kind);
+const FetchKazooStatusPayload = (kind: KazooStatusPayloadKind): Promise<KazooNextStatusResponse> => (window as any)["go"]["main"]["App"]["FetchKazooStatusPayload"](kind);
 type ApiStatusState = {
     checkingSources: Record<string, boolean>;
     statuses: Record<string, ApiCheckStatus>;
@@ -42,8 +42,8 @@ let apiStatusState: ApiStatusState = {
 };
 let activeCheckCurrentOnly: Promise<void> | null = null;
 let activeCheckNextOnly: Promise<void> | null = null;
-let activeStatusPayloadFetch: Promise<SpindleNextStatusResponse> | null = null;
-let activeCurrentStatusPayloadFetch: Promise<SpindleNextStatusResponse> | null = null;
+let activeStatusPayloadFetch: Promise<KazooNextStatusResponse> | null = null;
+let activeCurrentStatusPayloadFetch: Promise<KazooNextStatusResponse> | null = null;
 const activeSourceChecks = new Map<string, Promise<void>>();
 const listeners = new Set<() => void>();
 function emitApiStatusChange() {
@@ -72,7 +72,7 @@ function logStatusError(message: string): void {
 function anyNextVariantUp(values: Array<string | undefined>): ApiCheckStatus {
     return values.some((value) => value === "up") ? "online" : "offline";
 }
-function getNextSourceValues(payload: SpindleNextStatusResponse, source: SpindleNextSource): string[] {
+function getNextSourceValues(payload: KazooNextStatusResponse, source: KazooNextSource): string[] {
     if (source.statusKey) {
         const value = payload[source.statusKey];
         return typeof value === "string" ? [value] : [];
@@ -89,7 +89,7 @@ function getNextSourceValues(payload: SpindleNextStatusResponse, source: Spindle
     return values;
 }
 function getSafeNextStatusesFallback(currentStatuses: Record<string, ApiCheckStatus>): Record<string, ApiCheckStatus> {
-    return SPINDLE_NEXT_SOURCES.reduce<Record<string, ApiCheckStatus>>((acc, source) => {
+    return KAZOO_NEXT_SOURCES.reduce<Record<string, ApiCheckStatus>>((acc, source) => {
         const current = currentStatuses[source.id];
         acc[source.id] = current === "online" || current === "offline" ? current : "idle";
         return acc;
@@ -101,32 +101,32 @@ function hasCurrentResults(): boolean {
         return status === "online" || status === "offline";
     });
 }
-function hasSpindleNextResults(): boolean {
-    return SPINDLE_NEXT_SOURCES.some((source) => {
+function hasKazooNextResults(): boolean {
+    return KAZOO_NEXT_SOURCES.some((source) => {
         const status = apiStatusState.nextStatuses[source.id];
         return status === "online" || status === "offline";
     });
 }
-async function fetchStatusPayloadOnce(kind: SpindleStatusPayloadKind): Promise<SpindleNextStatusResponse> {
-    const payload = await withTimeout(FetchSpindleStatusPayload(kind), CHECK_TIMEOUT_MS, "Spindle status check timed out after 10 seconds");
+async function fetchStatusPayloadOnce(kind: KazooStatusPayloadKind): Promise<KazooNextStatusResponse> {
+    const payload = await withTimeout(FetchKazooStatusPayload(kind), CHECK_TIMEOUT_MS, "Kazoo status check timed out after 10 seconds");
     return payload && typeof payload === "object" ? payload : {};
 }
-async function fetchStatusPayloadWithRetry(kind: SpindleStatusPayloadKind): Promise<SpindleNextStatusResponse> {
+async function fetchStatusPayloadWithRetry(kind: KazooStatusPayloadKind): Promise<KazooNextStatusResponse> {
     let lastError: unknown = null;
-    for (let attempt = 1; attempt <= SPINDLE_STATUS_MAX_ATTEMPTS; attempt++) {
+    for (let attempt = 1; attempt <= KAZOO_STATUS_MAX_ATTEMPTS; attempt++) {
         try {
             return await fetchStatusPayloadOnce(kind);
         }
         catch (error) {
             lastError = error;
-            if (attempt < SPINDLE_STATUS_MAX_ATTEMPTS) {
-                await delay(SPINDLE_STATUS_RETRY_DELAY_MS * attempt);
+            if (attempt < KAZOO_STATUS_MAX_ATTEMPTS) {
+                await delay(KAZOO_STATUS_RETRY_DELAY_MS * attempt);
             }
         }
     }
-    throw lastError instanceof Error ? lastError : new Error("Spindle status check failed");
+    throw lastError instanceof Error ? lastError : new Error("Kazoo status check failed");
 }
-async function fetchSpindleStatusPayload(): Promise<SpindleNextStatusResponse> {
+async function fetchKazooStatusPayload(): Promise<KazooNextStatusResponse> {
     if (activeStatusPayloadFetch) {
         return activeStatusPayloadFetch;
     }
@@ -138,7 +138,7 @@ async function fetchSpindleStatusPayload(): Promise<SpindleNextStatusResponse> {
         activeStatusPayloadFetch = null;
     }
 }
-async function fetchSpindleCurrentStatusPayload(): Promise<SpindleNextStatusResponse> {
+async function fetchKazooCurrentStatusPayload(): Promise<KazooNextStatusResponse> {
     if (activeCurrentStatusPayloadFetch) {
         return activeCurrentStatusPayloadFetch;
     }
@@ -152,7 +152,7 @@ async function fetchSpindleCurrentStatusPayload(): Promise<SpindleNextStatusResp
 }
 async function checkSourceStatus(source: ApiSource): Promise<ApiCheckStatus> {
     try {
-        const payload = await fetchSpindleCurrentStatusPayload();
+        const payload = await fetchKazooCurrentStatusPayload();
         return payload[source.id] === "up" ? "online" : "offline";
     }
     catch (error) {
@@ -160,9 +160,9 @@ async function checkSourceStatus(source: ApiSource): Promise<ApiCheckStatus> {
         return "offline";
     }
 }
-async function checkSpindleNextStatuses(): Promise<Record<string, ApiCheckStatus>> {
-    const payload = await fetchSpindleStatusPayload();
-    return SPINDLE_NEXT_SOURCES.reduce<Record<string, ApiCheckStatus>>((acc, source) => {
+async function checkKazooNextStatuses(): Promise<Record<string, ApiCheckStatus>> {
+    const payload = await fetchKazooStatusPayload();
+    return KAZOO_NEXT_SOURCES.reduce<Record<string, ApiCheckStatus>>((acc, source) => {
         acc[source.id] = anyNextVariantUp(getNextSourceValues(payload, source));
         return acc;
     }, {});
@@ -190,12 +190,12 @@ export async function checkCurrentApiStatusesOnly(): Promise<void> {
         activeCheckCurrentOnly = null;
     }
 }
-export async function checkSpindleNextStatusesOnly(): Promise<void> {
+export async function checkKazooNextStatusesOnly(): Promise<void> {
     if (activeCheckNextOnly) {
         return activeCheckNextOnly;
     }
     activeCheckNextOnly = (async () => {
-        const checkingNextStatuses = Object.fromEntries(SPINDLE_NEXT_SOURCES.map((source) => [source.id, "checking" as ApiCheckStatus]));
+        const checkingNextStatuses = Object.fromEntries(KAZOO_NEXT_SOURCES.map((source) => [source.id, "checking" as ApiCheckStatus]));
         setApiStatusState((current) => ({
             ...current,
             nextStatuses: {
@@ -204,7 +204,7 @@ export async function checkSpindleNextStatusesOnly(): Promise<void> {
             },
         }));
         try {
-            const nextStatuses = await checkSpindleNextStatuses();
+            const nextStatuses = await checkKazooNextStatuses();
             setApiStatusState((current) => ({
                 ...current,
                 nextStatuses: {
@@ -231,11 +231,11 @@ export function ensureApiStatusCheckStarted(): void {
     if (!activeCheckCurrentOnly && !hasCurrentResults()) {
         void checkCurrentApiStatusesOnly();
     }
-    if (!activeCheckNextOnly && !hasSpindleNextResults()) {
-        void checkSpindleNextStatusesOnly();
+    if (!activeCheckNextOnly && !hasKazooNextResults()) {
+        void checkKazooNextStatusesOnly();
     }
 }
-export function ensureSpindleNextStatusCheckStarted(): void {
+export function ensureKazooNextStatusCheckStarted(): void {
     ensureApiStatusCheckStarted();
 }
 export async function checkApiStatus(sourceId: string): Promise<void> {

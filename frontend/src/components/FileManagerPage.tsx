@@ -41,7 +41,7 @@ const FORMAT_PRESETS: Record<string, {
     "disc-track-title-artist": { label: "Disc-Track. Title - Artist", template: "{disc}-{track}. {title} - {artist}" },
     "custom": { label: "Custom...", template: "{title} - {artist}" },
 };
-const STORAGE_KEY = "spindle_file_manager_state";
+const STORAGE_KEY = "kazoo_file_manager_state";
 const DEFAULT_CUSTOM_FORMAT = "{title} - {artist}";
 const RENAME_TEMPLATE_VARIABLES: TemplateToken[] = [
     { key: "{title}", description: "Track title", example: "Golden" },

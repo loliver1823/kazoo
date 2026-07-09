@@ -243,7 +243,7 @@ function App() {
             setSpotifyUrl(url);
             void metadata.handleFetchMetadata(url);
         };
-        window.addEventListener("spindle:fetch-url", onFetch);
+        window.addEventListener("kazoo:fetch-url", onFetch);
         // Remember which page pushed a playlist open so its back button can
         // return there instead of the synced-playlists list.
         const onOpenPlaylistSync = () => {
@@ -261,16 +261,16 @@ function App() {
         };
         const onOpenLibrary = () => setCurrentPage("library");
         const onOpenQueue = () => downloadQueue.openQueue();
-        window.addEventListener("spindle:open-playlist-sync", onOpenPlaylistSync);
-        window.addEventListener("spindle:playlist-sync-back", onPlaylistSyncBack);
-        window.addEventListener("spindle:open-library", onOpenLibrary);
-        window.addEventListener("spindle:open-queue", onOpenQueue);
+        window.addEventListener("kazoo:open-playlist-sync", onOpenPlaylistSync);
+        window.addEventListener("kazoo:playlist-sync-back", onPlaylistSyncBack);
+        window.addEventListener("kazoo:open-library", onOpenLibrary);
+        window.addEventListener("kazoo:open-queue", onOpenQueue);
         return () => {
-            window.removeEventListener("spindle:fetch-url", onFetch);
-            window.removeEventListener("spindle:open-playlist-sync", onOpenPlaylistSync);
-            window.removeEventListener("spindle:playlist-sync-back", onPlaylistSyncBack);
-            window.removeEventListener("spindle:open-library", onOpenLibrary);
-            window.removeEventListener("spindle:open-queue", onOpenQueue);
+            window.removeEventListener("kazoo:fetch-url", onFetch);
+            window.removeEventListener("kazoo:open-playlist-sync", onOpenPlaylistSync);
+            window.removeEventListener("kazoo:playlist-sync-back", onPlaylistSyncBack);
+            window.removeEventListener("kazoo:open-library", onOpenLibrary);
+            window.removeEventListener("kazoo:open-queue", onOpenQueue);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -400,7 +400,7 @@ function App() {
         }
         // Clicking Library while already in it returns to the root view.
         if (page === "library" && currentPage === "library") {
-            window.dispatchEvent(new CustomEvent("spindle:library-home"));
+            window.dispatchEvent(new CustomEvent("kazoo:library-home"));
             return;
         }
         setCurrentPage(page);
@@ -523,7 +523,7 @@ function App() {
                     <DialogHeader>
                         <DialogTitle>Update Available</DialogTitle>
                         <DialogDescription>
-                            Spindle v{updateInfo?.latest_version} is out — you're on v{updateInfo?.current_version}.
+                            Kazoo v{updateInfo?.latest_version} is out — you're on v{updateInfo?.current_version}.
                             {isApplyingUpdate ? " Downloading the update…" : " Update now? The app restarts by itself."}
                         </DialogDescription>
                     </DialogHeader>
@@ -571,7 +571,7 @@ function App() {
                             FFmpeg Required
                         </DialogTitle>
                         <DialogDescription className="text-sm text-foreground/70 leading-relaxed font-normal">
-                            Spindle checks your system for FFmpeg and FFprobe first.
+                            Kazoo checks your system for FFmpeg and FFprobe first.
                             If they are not available, the required binaries will be downloaded from GitHub.
                             This setup downloads about <span className="text-foreground font-semibold">30-40MB</span> of data.
                         </DialogDescription>

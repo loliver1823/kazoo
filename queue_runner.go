@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"spindle/backend"
+	"kazoo/backend"
 )
 
 // The download queue runner: a single backend worker that consumes queued

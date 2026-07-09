@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Clock, X } from "lucide-react";
 import { useDownloadProgress } from "@/hooks/useDownloadProgress";
-const DISMISSED_KEY = "spindle_cooldown_dismissed_event";
+const DISMISSED_KEY = "kazoo_cooldown_dismissed_event";
 export function CooldownBanner() {
     const progress = useDownloadProgress();
     const isCooldown = Boolean(progress.cooldown) && (progress.cooldown_secs ?? 0) > 0;

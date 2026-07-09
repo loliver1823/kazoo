@@ -239,7 +239,7 @@ func resolveExecutablePath(executableName string) (string, string, error) {
 	if !localExists {
 		if _, err := os.Stat(nextPath); err == nil {
 			if copyErr := copyExecutable(nextPath, localPath); copyErr == nil {
-				Dbgf("[FFmpeg] Copied %s from Spindle-Next folder\n", executableName)
+				Dbgf("[FFmpeg] Copied %s from staging folder\n", executableName)
 				candidates = appendExecutableCandidate(candidates, seen, localPath, "migrated")
 			}
 		}

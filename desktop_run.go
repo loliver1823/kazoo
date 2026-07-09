@@ -5,7 +5,7 @@ package main
 import (
 	"log"
 
-	"spindle/backend"
+	"kazoo/backend"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -17,7 +17,7 @@ import (
 // here so the Android build (which only ever serves) excludes Wails.
 func runDesktop(app *App) {
 	err := wails.Run(&options.App{
-		Title:     "Spindle Music Manager",
+		Title:     "Kazoo Music Manager",
 		Width:     1024,
 		Height:    600,
 		MinWidth:  1024,

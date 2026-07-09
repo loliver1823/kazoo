@@ -37,7 +37,7 @@ export function TitleBarDownloadStatus() {
 
     return (
         <button type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent("spindle:open-queue"))}
+            onClick={() => window.dispatchEvent(new CustomEvent("kazoo:open-queue"))}
             title="Open download queue"
             className="flex h-7 items-center gap-1.5 rounded px-2 mr-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors animate-in fade-in duration-300"
             style={{ "--wails-draggable": "no-drag" } as React.CSSProperties}>

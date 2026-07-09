@@ -7,9 +7,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
-        android:label="Spindle"
+        android:label="Kazoo"
         android:icon="@mipmap/ic_launcher"
-        android:theme="@style/Theme.Spindle"
+        android:theme="@style/Theme.Kazoo"
         android:usesCleartextTraffic="true"
         android:extractNativeLibs="true">
 

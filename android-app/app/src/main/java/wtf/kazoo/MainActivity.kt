@@ -1,4 +1,4 @@
-package wtf.spindle
+package wtf.kazoo
 
 import android.annotation.SuppressLint
 import android.os.Bundle
@@ -14,7 +14,7 @@ import java.net.URL
 import kotlin.concurrent.thread
 
 /**
- * Spindle's Android shell: exec the bundled Go server (libspindle.so, a real
+ * Kazoo's Android shell: exec the bundled Go server (libkazoo.so, a real
  * arm64 executable shipped through jniLibs) and host the frontend it serves
  * in a fullscreen WebView.
  */
@@ -57,18 +57,18 @@ class MainActivity : AppCompatActivity() {
         thread {
             try {
                 if (!isUp()) {
-                    val bin = File(applicationInfo.nativeLibraryDir, "libspindle.so")
+                    val bin = File(applicationInfo.nativeLibraryDir, "libkazoo.so")
                     val home = filesDir.absolutePath
                     val music = File(getExternalFilesDir(null), "Music").apply { mkdirs() }
                     val pb = ProcessBuilder(bin.absolutePath, "serve", addr)
                     pb.environment()["HOME"] = home
-                    pb.environment()["SPINDLE_DEFAULT_MUSIC_DIR"] = music.absolutePath
+                    pb.environment()["KAZOO_DEFAULT_MUSIC_DIR"] = music.absolutePath
                     pb.redirectErrorStream(true)
                     server = pb.start()
                     // Drain output so the child never blocks on a full pipe.
                     thread {
                         server?.inputStream?.bufferedReader()?.useLines { lines ->
-                            lines.forEach { android.util.Log.i("spindle-server", it) }
+                            lines.forEach { android.util.Log.i("kazoo-server", it) }
                         }
                     }
                 }
@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 runOnUiThread { web.loadUrl("http://$addr/") }
             } catch (e: Exception) {
-                android.util.Log.e("spindle", "server start failed", e)
+                android.util.Log.e("kazoo", "server start failed", e)
             }
         }
     }

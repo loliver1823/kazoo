@@ -1,4 +1,4 @@
-module spindle
+module kazoo
 
 go 1.26
 

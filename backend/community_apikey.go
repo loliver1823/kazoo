@@ -81,9 +81,9 @@ func getCommunityAPIKey() (string, error) {
 func communityUserAgent() string {
 	version := strings.TrimSpace(AppVersion)
 	if version == "" || version == "Unknown" {
-		return "Spindle"
+		return "Kazoo"
 	}
-	return "Spindle/" + version
+	return "Kazoo/" + version
 }
 
 func setCommunityRequestHeaders(req *http.Request) error {

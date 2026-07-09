@@ -34,7 +34,7 @@ const M4A_CODEC_OPTIONS = [
     { value: "aac", label: "AAC" },
     { value: "alac", label: "ALAC" },
 ];
-const STORAGE_KEY = "spindle_audio_converter_state";
+const STORAGE_KEY = "kazoo_audio_converter_state";
 export function AudioConverterPage() {
     const [files, setFiles] = useState<AudioFile[]>(() => {
         try {

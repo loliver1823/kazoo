@@ -28,7 +28,7 @@ type Match = backend.MatchedTrack;
 let pendingOpenUrl: string | null = null;
 export function openSpotifyPlaylistView(url: string) {
     pendingOpenUrl = url;
-    window.dispatchEvent(new CustomEvent("spindle:open-playlist-sync"));
+    window.dispatchEvent(new CustomEvent("kazoo:open-playlist-sync"));
 }
 
 function fmtDuration(ms: number): string {
@@ -78,8 +78,8 @@ export function PlaylistSyncPage() {
             }
         };
         consume();
-        window.addEventListener("spindle:open-playlist-sync", consume);
-        return () => window.removeEventListener("spindle:open-playlist-sync", consume);
+        window.addEventListener("kazoo:open-playlist-sync", consume);
+        return () => window.removeEventListener("kazoo:open-playlist-sync", consume);
     }, []);
 
     // Downloads auto-import into the library; rematch the open playlist so
@@ -171,7 +171,7 @@ export function PlaylistSyncPage() {
         const libName = await FindLibraryArtistName(artist).catch(() => "");
         if (libName) { openLibraryArtist(libName); return; }
         if (m.ref.artistId) {
-            window.dispatchEvent(new CustomEvent("spindle:fetch-url", { detail: `https://open.spotify.com/artist/${m.ref.artistId}/discography/all` }));
+            window.dispatchEvent(new CustomEvent("kazoo:fetch-url", { detail: `https://open.spotify.com/artist/${m.ref.artistId}/discography/all` }));
             return;
         }
         toast.info(`"${artist}" isn't in your library`);
@@ -183,7 +183,7 @@ export function PlaylistSyncPage() {
             if (alb) { openLibraryAlbum(alb); return; }
         }
         if (m.ref.albumId) {
-            window.dispatchEvent(new CustomEvent("spindle:fetch-url", { detail: `https://open.spotify.com/album/${m.ref.albumId}` }));
+            window.dispatchEvent(new CustomEvent("kazoo:fetch-url", { detail: `https://open.spotify.com/album/${m.ref.albumId}` }));
             return;
         }
         toast.info("No album details for this track — try Resync");
@@ -226,7 +226,7 @@ export function PlaylistSyncPage() {
                             setDetail(null);
                             if (fromExternal) {
                                 setFromExternal(false);
-                                window.dispatchEvent(new CustomEvent("spindle:playlist-sync-back"));
+                                window.dispatchEvent(new CustomEvent("kazoo:playlist-sync-back"));
                             }
                         }}
                     >

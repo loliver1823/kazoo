@@ -2,7 +2,7 @@ package main
 
 // Headless server mode: exposes the full App API over HTTP + a WebSocket
 // event stream, and serves the frontend with a shim that impersonates the
-// Wails bridge. This is the portability layer — `spindle serve` runs the app
+// Wails bridge. This is the portability layer — `kazoo serve` runs the app
 // in any browser, and the Android shell embeds the same server behind a
 // WebView.
 
@@ -15,7 +15,7 @@ import (
 	"strings"
 	"sync"
 
-	"spindle/backend"
+	"kazoo/backend"
 
 	"github.com/gorilla/websocket"
 )
@@ -169,7 +169,7 @@ func (a *App) StartServe(addr string) error {
 	})
 
 	backend.Dbgf("serve mode listening on %s\n", addr)
-	fmt.Println("Spindle serving on http://" + addr)
+	fmt.Println("Kazoo serving on http://" + addr)
 	return http.ListenAndServe(addr, mux)
 }
 

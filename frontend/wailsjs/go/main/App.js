@@ -166,8 +166,8 @@ export function ExtractLyricsToLRC(arg1, arg2) {
   return window['go']['main']['App']['ExtractLyricsToLRC'](arg1, arg2);
 }
 
-export function FetchSpindleStatusPayload(arg1) {
-  return window['go']['main']['App']['FetchSpindleStatusPayload'](arg1);
+export function FetchKazooStatusPayload(arg1) {
+  return window['go']['main']['App']['FetchKazooStatusPayload'](arg1);
 }
 
 export function FindLibraryAlbum(arg1, arg2) {

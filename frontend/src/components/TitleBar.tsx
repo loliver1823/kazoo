@@ -178,7 +178,7 @@ export function TitleBar() {
                         </div>)}
                     </div>
                     <MenubarSeparator />
-                    <MenubarItem onClick={() => openExternal("https://github.com/loliver1823/spindle")} className="gap-2">
+                    <MenubarItem onClick={() => openExternal("https://github.com/loliver1823/kazoo")} className="gap-2">
                         <Globe className="w-4 h-4 opacity-70"/>
                         <span>GitHub</span>
                     </MenubarItem>

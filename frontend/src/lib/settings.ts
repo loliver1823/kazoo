@@ -316,10 +316,10 @@ export const FONT_OPTIONS: FontOption[] = [
     },
 ];
 const BUILT_IN_FONT_VALUES = new Set(FONT_OPTIONS.map((font) => font.value));
-const GOOGLE_FONT_LINK_ID_PREFIX = "spindle-custom-font-";
+const GOOGLE_FONT_LINK_ID_PREFIX = "kazoo-custom-font-";
 const GOOGLE_FONTS_CSS_HOST = "fonts.googleapis.com";
 const GOOGLE_FONTS_SPECIMEN_HOST = "fonts.google.com";
-const SETTINGS_KEY = "spindle-settings";
+const SETTINGS_KEY = "kazoo-settings";
 let cachedSettings: Settings | null = null;
 type SettingsPayload = Partial<Settings> & {
     darkMode?: boolean;
@@ -719,8 +719,8 @@ function getSettingsFromLocalStorage(): Settings {
             const normalized = toNormalizedSettings(JSON.parse(stored) as SettingsPayload);
             // One-time adoption of the rebrand's indigo accent (was the old "yellow"
             // default). Runs once; the user can freely change the accent afterwards.
-            if (!localStorage.getItem("spindle_accent_v2")) {
-                localStorage.setItem("spindle_accent_v2", "1");
+            if (!localStorage.getItem("kazoo_accent_v2")) {
+                localStorage.setItem("kazoo_accent_v2", "1");
                 normalized.theme = "indigo";
                 try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(normalized)); } catch { /* ignore */ }
             }

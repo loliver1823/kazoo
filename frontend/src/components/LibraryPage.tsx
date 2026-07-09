@@ -63,7 +63,7 @@ const PILLS: Pill[] = [
 
 // The pills are drag-reorderable; the saved order persists and the first pill
 // is the default view when the library opens.
-const PILL_ORDER_KEY = "spindle_pill_order";
+const PILL_ORDER_KEY = "kazoo_pill_order";
 function orderedPillList(): Pill[] {
     try {
         const saved: string[] = JSON.parse(localStorage.getItem(PILL_ORDER_KEY) || "[]");
@@ -199,11 +199,11 @@ let savedNav: { stack: Route[]; activeRootId: string; search: string } | null = 
 let pendingLibraryRoute: Route | null = null;
 export function openLibraryArtist(name: string) {
     pendingLibraryRoute = { kind: "artist", name };
-    window.dispatchEvent(new CustomEvent("spindle:open-library"));
+    window.dispatchEvent(new CustomEvent("kazoo:open-library"));
 }
 export function openLibraryAlbum(album: backend.LibraryAlbum) {
     pendingLibraryRoute = { kind: "album", album };
-    window.dispatchEvent(new CustomEvent("spindle:open-library"));
+    window.dispatchEvent(new CustomEvent("kazoo:open-library"));
 }
 
 export function LibraryPage() {
@@ -284,8 +284,8 @@ export function LibraryPage() {
             setActiveRootId(first.id);
             setStack([first.root]);
         };
-        window.addEventListener("spindle:library-home", onHome);
-        return () => window.removeEventListener("spindle:library-home", onHome);
+        window.addEventListener("kazoo:library-home", onHome);
+        return () => window.removeEventListener("kazoo:library-home", onHome);
     }, []);
     const route = stack[stack.length - 1];
     const [activeRootId, setActiveRootId] = useState(() => savedNav?.activeRootId ?? orderedPillList()[0].id);
@@ -339,8 +339,8 @@ export function LibraryPage() {
             }
         };
         consume();
-        window.addEventListener("spindle:open-library", consume);
-        return () => window.removeEventListener("spindle:open-library", consume);
+        window.addEventListener("kazoo:open-library", consume);
+        return () => window.removeEventListener("kazoo:open-library", consume);
     }, []);
 
     const selectAt = (kind: "songs" | "albums" | "artists", keys: string[], index: number, e: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }) => {
@@ -1133,7 +1133,7 @@ function ArtistView({ releases, name, bust, onOpenAlbum, onAllSongs, onArtist, o
                 const meta = await fetchSpotifyMetadata(`https://open.spotify.com/track/${t.spotifyId}`, false, 0, 10);
                 const albumId = ("track" in meta && meta.track) ? (meta.track as any).album_id : "";
                 if (albumId) {
-                    window.dispatchEvent(new CustomEvent("spindle:fetch-url", { detail: `https://open.spotify.com/album/${albumId}` }));
+                    window.dispatchEvent(new CustomEvent("kazoo:fetch-url", { detail: `https://open.spotify.com/album/${albumId}` }));
                     return;
                 }
             }
@@ -1296,7 +1296,7 @@ function ArtistView({ releases, name, bust, onOpenAlbum, onAllSongs, onArtist, o
                         const chipLabel = (t: string) => t === "ep" ? "EPs" : `${t.charAt(0).toUpperCase()}${t.slice(1)}s`;
                         const openRelease = (r: backend.ArtistReleaseCheck) => {
                             setNewRelOpen(false);
-                            window.dispatchEvent(new CustomEvent("spindle:fetch-url", { detail: r.url }));
+                            window.dispatchEvent(new CustomEvent("kazoo:fetch-url", { detail: r.url }));
                         };
                         return (<>
                             {types.length > 1 && (

@@ -737,7 +737,7 @@ func (q *QobuzDownloader) DownloadTrackWithISRC(isrc, outputDir, quality, filena
 		Publisher:   spotifyPublisher,
 		Composer:    spotifyComposer,
 		Separator:   metadataSeparator,
-		Description: "Spindle Music Manager",
+		Description: "Kazoo Music Manager",
 		ISRC:        isrc,
 		UPC:         upc,
 		Genre:       mbMeta.Genre,

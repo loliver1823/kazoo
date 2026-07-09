@@ -38,7 +38,7 @@ func TestExpectedAssetName(t *testing.T) {
 	// Sanity: always returns one of the published asset names.
 	name := expectedAssetName()
 	switch name {
-	case "Spindle.exe", "Spindle.dmg", "Spindle.AppImage", "Spindle-ARM.AppImage":
+	case "Kazoo.exe", "Kazoo.dmg", "Kazoo.AppImage", "Kazoo-ARM.AppImage":
 	default:
 		t.Errorf("unexpected asset name %q", name)
 	}

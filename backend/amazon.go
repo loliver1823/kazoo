@@ -449,7 +449,7 @@ func (a *AmazonDownloader) DownloadByURL(amazonURL, outputDir, quality, filename
 		Publisher:   spotifyPublisher,
 		Composer:    spotifyComposer,
 		Separator:   metadataSeparator,
-		Description: "Spindle Music Manager",
+		Description: "Kazoo Music Manager",
 		ISRC:        isrc,
 		UPC:         upc,
 		Genre:       mbMeta.Genre,

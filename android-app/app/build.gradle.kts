@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "wtf.spindle"
+    namespace = "wtf.kazoo"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "wtf.spindle"
+        applicationId = "wtf.kazoo"
         minSdk = 29
         targetSdk = 34
         versionCode = 1
@@ -16,7 +16,7 @@ android {
         ndk { abiFilters += listOf("arm64-v8a") }
     }
 
-    // The Go server ships as libspindle.so and is exec'd as a child process —
+    // The Go server ships as libkazoo.so and is exec'd as a child process —
     // it must exist as a real file on disk, not be loaded from the APK.
     packaging { jniLibs { useLegacyPackaging = true } }
 

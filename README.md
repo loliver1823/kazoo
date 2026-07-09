@@ -1,11 +1,11 @@
 <div align="center">
 
-# 🌀 Spindle Music Manager
+# 🌀 Kazoo Music Manager
 
 **A lossless music library manager and downloader for the desktop.**
 
 Organize a pristine FLAC library, browse it like a streaming app, and fill in the gaps —
-Spindle finds what's missing and downloads it in true lossless quality, tagged and filed
+Kazoo finds what's missing and downloads it in true lossless quality, tagged and filed
 exactly where it belongs.
 
 Built with Go + [Wails](https://wails.io) and React. Windows · macOS · Linux · Android (beta).
@@ -69,19 +69,19 @@ Grab the latest build from [Releases](../../releases):
 
 | Platform | File |
 |---|---|
-| Windows | `Spindle.exe` (portable) |
-| macOS | `Spindle.dmg` |
-| Linux x64 | `Spindle.AppImage` |
-| Linux ARM64 | `Spindle-ARM.AppImage` |
-| Android (beta) | `Spindle.apk` (arm64, sideload) |
+| Windows | `Kazoo.exe` (portable) |
+| macOS | `Kazoo.dmg` |
+| Linux x64 | `Kazoo.AppImage` |
+| Linux ARM64 | `Kazoo-ARM.AppImage` |
+| Android (beta) | `Kazoo.apk` (arm64, sideload) |
 
 Desktop builds check for updates on launch and can update themselves in place.
 
-First launch: add your music folder under **Library → Manage folders**. Spindle scans it,
+First launch: add your music folder under **Library → Manage folders**. Kazoo scans it,
 builds the index, and keeps watching for changes. Your first library folder doubles as the
 download destination, so downloads become part of the library the moment they finish.
 
-App data (library DB, playlists, artist art, config) lives in `~/.spindle`.
+App data (library DB, playlists, artist art, config) lives in `~/.kazoo`.
 
 > **Linux** needs `webkit2gtk-4.1` (`sudo apt install libwebkit2gtk-4.1-0` on Ubuntu/Debian).
 
@@ -90,8 +90,8 @@ App data (library DB, playlists, artist art, config) lives in `~/.spindle`.
 Requirements: Go 1.26+, Node 24+, pnpm, and the [Wails CLI](https://wails.io/docs/gettingstarted/installation).
 
 ```bash
-git clone https://github.com/loliver1823/spindle.git
-cd spindle
+git clone https://github.com/loliver1823/kazoo.git
+cd kazoo
 cd frontend && pnpm install && cd ..
 wails dev      # live-reload development build
 wails build    # production binary in build/bin
@@ -102,7 +102,7 @@ wails build    # production binary in build/bin
 The same binary can run without a window — the full app served over HTTP for any browser on the machine:
 
 ```bash
-spindle serve 127.0.0.1:8899
+kazoo serve 127.0.0.1:8899
 ```
 
 ### Android
@@ -115,11 +115,11 @@ wails build                       # produces frontend/dist
 # → android-app/app/build/outputs/apk/debug/app-debug.apk (arm64)
 ```
 
-Requires a JDK 17+, the Android SDK, and Gradle 8.5+. Downloads land in the app's scoped storage (`Android/data/wtf.spindle/files/Music`) by default.
+Requires a JDK 17+, the Android SDK, and Gradle 8.5+. Downloads land in the app's scoped storage (`Android/data/wtf.kazoo/files/Music`) by default.
 
 ## ⚙️ How files are organized
 
-Spindle names files with configurable templates. The default layout:
+Kazoo names files with configurable templates. The default layout:
 
 ```
 Library/
@@ -135,7 +135,7 @@ behaviour are all configurable in **Settings**.
 
 ## ⚠️ Disclaimer
 
-Spindle is a library management tool, not affiliated with or endorsed by Spotify, Tidal,
+Kazoo is a library management tool, not affiliated with or endorsed by Spotify, Tidal,
 Qobuz, Amazon Music, or any other service. Downloading copyrighted material may be illegal
 in your country — use it only for content you have the right to access, and support the
 artists you love.

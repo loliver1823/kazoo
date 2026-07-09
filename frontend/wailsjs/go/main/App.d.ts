@@ -85,7 +85,7 @@ export function ExportFailedDownloads():Promise<string>;
 
 export function ExtractLyricsToLRC(arg1:string,arg2:boolean):Promise<backend.ExtractLyricsResult>;
 
-export function FetchSpindleStatusPayload(arg1:string):Promise<Record<string, string>>;
+export function FetchKazooStatusPayload(arg1:string):Promise<Record<string, string>>;
 
 export function FindLibraryAlbum(arg1:string,arg2:string):Promise<backend.LibraryAlbum>;
 

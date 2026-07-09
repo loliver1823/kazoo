@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"spindle/backend"
+	"kazoo/backend"
 )
 
 //go:embed all:frontend/dist
@@ -30,7 +30,7 @@ func main() {
 
 	app := NewApp()
 
-	// Headless mode: `spindle serve [addr]` runs the full app behind an HTTP
+	// Headless mode: `kazoo serve [addr]` runs the full app behind an HTTP
 	// bridge — the portability layer for browsers and the Android shell.
 	if len(os.Args) > 1 && os.Args[1] == "serve" {
 		addr := "127.0.0.1:8899"

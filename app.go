@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"spindle/backend"
+	"kazoo/backend"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -60,9 +60,9 @@ type APIStatusReport struct {
 }
 
 const checkOperationTimeout = 10 * time.Second
-const spindleNextStatusURL = "https://gist.githubusercontent.com/afkarxyz/6e57cd362cbd67f889e3a91a76254a5e/raw"
-const spindleCurrentStatusURL = "https://gist.githubusercontent.com/afkarxyz/7e392bc94ec2faaf74ef7d80025636eb/raw"
-const spindleStatusPayloadMaxBytes = 128 * 1024
+const kazooNextStatusURL = "https://gist.githubusercontent.com/afkarxyz/6e57cd362cbd67f889e3a91a76254a5e/raw"
+const kazooCurrentStatusURL = "https://gist.githubusercontent.com/afkarxyz/7e392bc94ec2faaf74ef7d80025636eb/raw"
+const kazooStatusPayloadMaxBytes = 128 * 1024
 
 func NewApp() *App {
 	return &App{}
@@ -988,7 +988,7 @@ func (a *App) DownloadTrack(req DownloadRequest) (DownloadResponse, error) {
 		req.Service = "tidal"
 	}
 
-	// Spindle always pulls the best quality each source offers, degrading
+	// Kazoo always pulls the best quality each source offers, degrading
 	// gracefully when the top tier isn't available for a given track.
 	req.AllowFallback = true
 	switch strings.ToLower(strings.TrimSpace(req.Service)) {
@@ -1415,7 +1415,7 @@ func (a *App) DownloadTrack(req DownloadRequest) (DownloadResponse, error) {
 				item.Format = "M4A"
 			}
 
-			backend.AddHistoryItem(item, "Spindle")
+			backend.AddHistoryItem(item, "Kazoo")
 		}(filename, req.TrackName, req.ArtistName, req.AlbumName, req.SpotifyID, req.CoverURL, req.AudioFormat, historySource)
 	}
 
@@ -1578,7 +1578,7 @@ func (a *App) ExportFailedDownloads() (string, error) {
 	}
 
 	content := strings.Join(failedItems, "\n")
-	defaultFilename := fmt.Sprintf("Spindle_%s_Failed.txt", time.Now().Format("20060102_150405"))
+	defaultFilename := fmt.Sprintf("Kazoo_%s_Failed.txt", time.Now().Format("20060102_150405"))
 
 	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
 		DefaultFilename: defaultFilename,
@@ -1671,7 +1671,7 @@ func (a *App) CheckAPIStatusReport(apiType string, apiURL string) APIStatusRepor
 	return report
 }
 
-func fetchSpindleStatusPayload(statusURL string) (map[string]string, error) {
+func fetchKazooStatusPayload(statusURL string) (map[string]string, error) {
 	parsedURL, err := url.Parse(statusURL)
 	if err != nil {
 		return nil, err
@@ -1696,12 +1696,12 @@ func fetchSpindleStatusPayload(statusURL string) (map[string]string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(io.LimitReader(resp.Body, spindleStatusPayloadMaxBytes))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, kazooStatusPayloadMaxBytes))
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Spindle status returned %d: %s", resp.StatusCode, previewResponseBody(body, 200))
+		return nil, fmt.Errorf("Kazoo status returned %d: %s", resp.StatusCode, previewResponseBody(body, 200))
 	}
 
 	var payload map[string]string
@@ -1714,19 +1714,19 @@ func fetchSpindleStatusPayload(statusURL string) (map[string]string, error) {
 	return payload, nil
 }
 
-func (a *App) FetchSpindleStatusPayload(kind string) (map[string]string, error) {
+func (a *App) FetchKazooStatusPayload(kind string) (map[string]string, error) {
 	var statusURL string
 	switch strings.ToLower(strings.TrimSpace(kind)) {
 	case "next":
-		statusURL = spindleNextStatusURL
+		statusURL = kazooNextStatusURL
 	case "current":
-		statusURL = spindleCurrentStatusURL
+		statusURL = kazooCurrentStatusURL
 	default:
-		return nil, fmt.Errorf("unknown Spindle status payload: %s", kind)
+		return nil, fmt.Errorf("unknown Kazoo status payload: %s", kind)
 	}
 
 	return runWithTimeout(checkOperationTimeout, func() (map[string]string, error) {
-		return fetchSpindleStatusPayload(statusURL)
+		return fetchKazooStatusPayload(statusURL)
 	})
 }
 func (a *App) CheckCustomTidalAPI(apiURL string) bool {
@@ -2105,35 +2105,35 @@ func (a *App) Quit() {
 }
 
 func (a *App) GetDownloadHistory() ([]backend.HistoryItem, error) {
-	return backend.GetHistoryItems("Spindle")
+	return backend.GetHistoryItems("Kazoo")
 }
 
 func (a *App) ClearDownloadHistory() error {
-	return backend.ClearHistory("Spindle")
+	return backend.ClearHistory("Kazoo")
 }
 
 func (a *App) DeleteDownloadHistoryItem(id string) error {
-	return backend.DeleteHistoryItem(id, "Spindle")
+	return backend.DeleteHistoryItem(id, "Kazoo")
 }
 
 func (a *App) GetFetchHistory() ([]backend.FetchHistoryItem, error) {
-	return backend.GetFetchHistoryItems("Spindle")
+	return backend.GetFetchHistoryItems("Kazoo")
 }
 
 func (a *App) AddFetchHistory(item backend.FetchHistoryItem) error {
-	return backend.AddFetchHistoryItem(item, "Spindle")
+	return backend.AddFetchHistoryItem(item, "Kazoo")
 }
 
 func (a *App) ClearFetchHistory() error {
-	return backend.ClearFetchHistory("Spindle")
+	return backend.ClearFetchHistory("Kazoo")
 }
 
 func (a *App) DeleteFetchHistoryItem(id string) error {
-	return backend.DeleteFetchHistoryItem(id, "Spindle")
+	return backend.DeleteFetchHistoryItem(id, "Kazoo")
 }
 
 func (a *App) ClearFetchHistoryByType(itemType string) error {
-	return backend.ClearFetchHistoryByType(itemType, "Spindle")
+	return backend.ClearFetchHistoryByType(itemType, "Kazoo")
 }
 
 func (a *App) GetRecentFetches() (string, error) {

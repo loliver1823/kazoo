@@ -36,7 +36,7 @@ type PlayerState = {
     repeat: RepeatMode;
 };
 
-const VOLUME_KEY = "spindle_player_volume";
+const VOLUME_KEY = "kazoo_player_volume";
 
 let state: PlayerState = {
     queue: [],

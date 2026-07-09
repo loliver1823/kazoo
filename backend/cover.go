@@ -143,7 +143,7 @@ func (c *CoverClient) ApplyMacOSFLACFileIcon(filePath, coverURL string, iconSize
 		return fmt.Errorf("cover URL is required")
 	}
 
-	tmpFile, err := os.CreateTemp("", "spindle-file-icon-*.jpg")
+	tmpFile, err := os.CreateTemp("", "kazoo-file-icon-*.jpg")
 	if err != nil {
 		return fmt.Errorf("failed to create temporary cover file: %w", err)
 	}
@@ -180,7 +180,7 @@ func ResizeImageForIcon(sourcePath string, iconSize int) (string, error) {
 	dst := image.NewRGBA(image.Rect(0, 0, iconSize, iconSize))
 	xdraw.CatmullRom.Scale(dst, dst.Bounds(), srcImage, srcImage.Bounds(), xdraw.Over, nil)
 
-	tmpFile, err := os.CreateTemp("", "spindle-resized-icon-*.png")
+	tmpFile, err := os.CreateTemp("", "kazoo-resized-icon-*.png")
 	if err != nil {
 		return "", fmt.Errorf("failed to create resized icon temp file: %w", err)
 	}

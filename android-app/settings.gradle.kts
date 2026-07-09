@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "Spindle"
+rootProject.name = "Kazoo"
 include(":app")

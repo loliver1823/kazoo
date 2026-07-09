@@ -7,7 +7,7 @@ export interface AudioAnalysisPreferences {
     fftSize: number;
     windowFunction: AnalyzerWindowFunction;
 }
-const STORAGE_KEY = "spindle_audio_analysis_preferences";
+const STORAGE_KEY = "kazoo_audio_analysis_preferences";
 const DEFAULT_PREFERENCES: AudioAnalysisPreferences = {
     colorScheme: "spek",
     freqScale: "linear",
