@@ -172,7 +172,7 @@ export function useDownload() {
                     if (failed > 0) parts.push(`${failed} failed`);
                     if (failed > 0) toast.warning(parts.join(", "));
                     else if (done > 0) toast.success(parts.join(", "));
-                    else if (skipped > 0) toast.info(`${skipped} tracks already exist`);
+                    else if (skipped > 0) toast.info(skipped === 1 ? "1 track already exists" : `${skipped} tracks already exist`);
                     await finishBatchExtras(states);
                 }
                 trackedRef.current = new Map();

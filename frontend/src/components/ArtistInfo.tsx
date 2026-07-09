@@ -13,6 +13,7 @@ import type { TrackMetadata, TrackAvailability } from "@/types/api";
 import { downloadHeader, downloadGalleryImage, downloadAvatar } from "@/lib/api";
 import { getSettings } from "@/lib/settings";
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
+import { plural } from "@/lib/utils";
 import { useState, useMemo } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -656,7 +657,7 @@ export function ArtistInfo({ artistInfo, albumList, trackList, searchQuery, sort
                                                       {data.type}
                                                   </span>
                                                   <span>•</span>
-                                                  <span>{data.count} tracks</span>
+                                                  <span>{plural(data.count, "track")}</span>
                                                   <span>•</span>
                                                   <span>{data.tracks[0]?.release_date?.split('-')[0] || 'Unknown Year'}</span>
                                               </div>

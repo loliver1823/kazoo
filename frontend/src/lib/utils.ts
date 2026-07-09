@@ -43,6 +43,9 @@ export function openExternal(url: string) {
         }
     }
 }
+export function plural(count: number, noun: string): string {
+    return `${count.toLocaleString()} ${noun}${count === 1 ? "" : "s"}`;
+}
 export function getFirstArtist(artistString: string): string {
     if (!artistString)
         return artistString;

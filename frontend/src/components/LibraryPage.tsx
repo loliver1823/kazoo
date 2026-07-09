@@ -28,6 +28,7 @@ import { playQueue, addToQueue, toPlayerTrack } from "@/lib/player";
 import { useDownload } from "@/hooks/useDownload";
 import { getSettings, saveSettings } from "@/lib/settings";
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
+import { plural } from "@/lib/utils";
 
 type Album = backend.LibraryAlbum;
 type Artist = backend.LibraryArtist;
@@ -651,7 +652,7 @@ export function LibraryPage() {
     const removeFolder = async (p: string) => {
         try {
             const n = await RemoveLibraryFolder(p);
-            toast.success(`Removed ${n} tracks from library`);
+            toast.success(`Removed ${plural(n, "track")} from library`);
             await Promise.all([loadFolders(), load(), loadStats()]);
         } catch (e) { toast.error(`${e}`); }
     };
@@ -679,7 +680,7 @@ export function LibraryPage() {
                 <h1 className="text-2xl font-bold tracking-tight">Your Library</h1>
                 {stats && (
                     <span className="text-xs text-muted-foreground mt-1">
-                        {stats.tracks.toLocaleString()} songs · {stats.albums.toLocaleString()} albums · {stats.artists.toLocaleString()} artists
+                        {plural(stats.tracks, "song")} · {plural(stats.albums, "album")} · {plural(stats.artists, "artist")}
                     </span>
                 )}
                 {enrichProgress && (
@@ -762,7 +763,7 @@ export function LibraryPage() {
                                             className={`group text-center rounded-lg p-3 transition ${sel.has(a.name) ? "bg-accent ring-2 ring-primary" : "bg-card hover:bg-accent"}`}>
                                             <div className="relative aspect-square mb-3"><ArtistCover name={a.name} fallback={a.coverPath} circle /><SelectBox checked={sel.has(a.name)} onToggle={() => toggleOne("artists", a.name)} /></div>
                                             <div className="font-semibold truncate text-sm">{a.name}</div>
-                                            <div className="text-xs text-muted-foreground mt-0.5">{a.trackCount} songs</div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">{plural(a.trackCount, "song")}</div>
                                         </button>
                                     </ContextMenuTrigger>
                                     <ContextMenuContent className="w-44">
@@ -801,7 +802,7 @@ export function LibraryPage() {
                                                 <div className="w-full h-full rounded-md flex items-center justify-center bg-gradient-to-br from-muted to-card"><ListMusic className="h-1/3 w-1/3 text-muted-foreground/40" /></div>}
                                         </div>
                                         <div className="font-semibold truncate text-sm">{p.name}</div>
-                                        <div className="text-xs text-muted-foreground mt-0.5">{p.trackCount} songs</div>
+                                        <div className="text-xs text-muted-foreground mt-0.5">{plural(p.trackCount, "song")}</div>
                                     </button>
                                 </ContextMenuTrigger>
                                 <ContextMenuContent className="w-44">
@@ -826,7 +827,7 @@ export function LibraryPage() {
                             <div className="min-w-0">
                                 <div className="text-xs uppercase tracking-wide text-muted-foreground">Playlist</div>
                                 <div className="text-4xl font-bold truncate leading-tight mt-1">{route.playlist.name}</div>
-                                <div className="text-sm text-muted-foreground mt-2">{playlistTracks.length} songs</div>
+                                <div className="text-sm text-muted-foreground mt-2">{plural(playlistTracks.length, "song")}</div>
                             </div>
                         </div>
                         {playlistTracks.length === 0
@@ -846,7 +847,7 @@ export function LibraryPage() {
                                     <button key={f.value} onClick={() => push({ kind: "songs", filters: { [field]: f.value }, label: f.value })}
                                         className="text-left bg-card hover:bg-accent transition rounded-lg p-4 h-24 flex flex-col justify-between">
                                         <div className="font-semibold truncate">{f.value}</div>
-                                        <div className="text-xs text-muted-foreground">{f.count} song{f.count === 1 ? "" : "s"}</div>
+                                        <div className="text-xs text-muted-foreground">{plural(f.count, "song")}</div>
                                     </button>
                                 );
                             })}
@@ -875,7 +876,7 @@ export function LibraryPage() {
                                         onClick={() => push({ kind: "artist", name: route.album.albumArtist })}>
                                         {route.album.albumArtist}
                                     </button>
-                                    {route.album.year ? ` · ${route.album.year}` : ""} · {albumTracks.length} songs
+                                    {route.album.year ? ` · ${route.album.year}` : ""} · {plural(albumTracks.length, "song")}
                                 </div>
                                 <Button variant="secondary" size="sm" className="mt-3" onClick={() => editAlbumMeta(route.album)}>
                                     <Pencil className="h-4 w-4 mr-1.5" /> Edit album
@@ -1642,7 +1643,7 @@ function TrackEditor({ ids, onClose, onSaved }: { ids: number[] | null; onClose:
                 await WriteBulkTrackMetadata(ids, backend.BulkMeta.createFrom(payload));
             }
             if (art) await EmbedCoverFromSource(ids, art.src);
-            toast.success(multi ? `Updated ${ids.length} tracks` : "Metadata saved");
+            toast.success(multi ? `Updated ${plural(ids.length, "track")}` : "Metadata saved");
             onSaved(); onClose();
         } catch (e) { toast.error(`Save failed: ${e}`); }
         finally { setSaving(false); }
@@ -1962,7 +1963,7 @@ function FolderManager({ open, onOpenChange, folders, onAdd, onRemove, onRescan,
                                             </span>
                                         )}
                                     </div>
-                                    <div className="text-xs text-muted-foreground">{f.trackCount} tracks</div>
+                                    <div className="text-xs text-muted-foreground">{plural(f.trackCount, "track")}</div>
                                 </div>
                                 {!isDl && (
                                     <button onClick={() => setAsDownload(f.path)} title="Save downloads to this folder"

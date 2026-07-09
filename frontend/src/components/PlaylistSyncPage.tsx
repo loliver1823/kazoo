@@ -10,6 +10,7 @@ import { backend } from "../../wailsjs/go/models";
 import { EventsOn } from "../../wailsjs/runtime/runtime";
 import { playQueue, toPlayerTrack } from "@/lib/player";
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
+import { plural } from "@/lib/utils";
 import { useDownload } from "@/hooks/useDownload";
 import type { TrackMetadata } from "@/types/api";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from "@/components/ui/context-menu";
@@ -233,7 +234,7 @@ export function PlaylistSyncPage() {
                             <h1 className="text-3xl font-bold truncate mb-2">{p.name || "Playlist"}</h1>
                             <div className="text-sm text-muted-foreground mb-4">
                                 {p.owner && <>{p.owner} · </>}
-                                {p.total} tracks · <span className="text-green-500">{p.haveCount} in library</span>
+                                {plural(p.total, "track")} · <span className="text-green-500">{p.haveCount} in library</span>
                                 {missing > 0 && <> · <span className="text-amber-500">{missing} missing</span></>}
                             </div>
                             <div className="flex items-center gap-2">
