@@ -291,6 +291,34 @@ func (a *App) shutdown(ctx context.Context) {
 	backend.CloseISRCCacheDB()
 }
 
+// ---- Auto-update ------------------------------------------------------------
+
+func (a *App) GetAppVersion() string {
+	return backend.AppVersion
+}
+
+// CheckForUpdate asks GitHub Releases whether a newer version exists.
+func (a *App) CheckForUpdate() (backend.UpdateInfo, error) {
+	return backend.CheckForUpdate()
+}
+
+// ApplyUpdate downloads and stages the new binary. When the swap needs the
+// process gone (Windows/Linux) the app quits itself after a short delay so
+// the frontend can show the "restarting" state first.
+func (a *App) ApplyUpdate(assetURL string) (string, error) {
+	restarting, message, err := backend.ApplyUpdate(assetURL)
+	if err != nil {
+		return "", err
+	}
+	if restarting {
+		go func() {
+			time.Sleep(1500 * time.Millisecond)
+			runtime.Quit(a.ctx)
+		}()
+	}
+	return message, nil
+}
+
 // ---- Local music library (MediaMonkey-style catalog) -----------------------
 
 // ScanLibraryFolder scans a folder tree into the library, emitting

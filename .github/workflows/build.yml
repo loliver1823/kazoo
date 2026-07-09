@@ -29,6 +29,17 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Stamp version into wails.json
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${VERSION#v}"
+          if [ "$VERSION" != "dev" ]; then
+            sed -i.bak "s/\"productVersion\": \"[^\"]*\"/\"productVersion\": \"$VERSION\"/" wails.json
+            rm -f wails.json.bak
+            grep productVersion wails.json
+          fi
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -106,6 +117,17 @@ jobs:
             VERSION="dev"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Stamp version into wails.json
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${VERSION#v}"
+          if [ "$VERSION" != "dev" ]; then
+            sed -i.bak "s/\"productVersion\": \"[^\"]*\"/\"productVersion\": \"$VERSION\"/" wails.json
+            rm -f wails.json.bak
+            grep productVersion wails.json
+          fi
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -208,6 +230,17 @@ jobs:
             VERSION="dev"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Stamp version into wails.json
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${VERSION#v}"
+          if [ "$VERSION" != "dev" ]; then
+            sed -i.bak "s/\"productVersion\": \"[^\"]*\"/\"productVersion\": \"$VERSION\"/" wails.json
+            rm -f wails.json.bak
+            grep productVersion wails.json
+          fi
 
       - name: Setup Go
         uses: actions/setup-go@v5
