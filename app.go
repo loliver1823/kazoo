@@ -270,8 +270,10 @@ func (a *App) startup(ctx context.Context) {
 		backend.Dbgf("Failed to init library DB: %v\n", err)
 	}
 	// The download queue survives restarts; mid-download items come back as
-	// queued.
+	// queued. The backend runner then picks them up automatically — downloads
+	// no longer depend on the frontend staying open on any particular page.
 	backend.LoadDownloadQueue()
+	go a.runDownloadQueue()
 	// Real-time library watching: OS file events → targeted scans → UI event.
 	if err := backend.StartLibraryWatcher(func(ch backend.WatchChange) {
 		runtime.EventsEmit(a.ctx, "library:changed", ch)
@@ -289,6 +291,12 @@ func (a *App) startup(ctx context.Context) {
 func (a *App) shutdown(ctx context.Context) {
 	backend.CloseHistoryDB()
 	backend.CloseISRCCacheDB()
+}
+
+// EnqueueDownload adds a metadata-rich item to the download queue; the
+// backend runner downloads it. Returns the queue item ID.
+func (a *App) EnqueueDownload(item backend.DownloadItem) string {
+	return backend.AddToQueueEx(item)
 }
 
 // ---- Auto-update ------------------------------------------------------------

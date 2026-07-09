@@ -11,7 +11,7 @@ import { useDownload } from "@/hooks/useDownload";
 import { openSpotifyPlaylistView } from "@/components/PlaylistSyncPage";
 import { backend } from "../../wailsjs/go/models";
 import { cn } from "@/lib/utils";
-import { useHideClean } from "@/lib/clean";
+import { useHideClean, excludeCleanVariants } from "@/lib/clean";
 import { QualityBadge } from "@/components/QualityBadge";
 import { useTypingEffect } from "@/hooks/useTypingEffect";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
@@ -41,29 +41,6 @@ interface SearchBarProps {
     hasResult: boolean;
     searchMode: boolean;
     onSearchModeChange: (isSearch: boolean) => void;
-}
-// "Clean variant" detection: a parenthetical/bracketed "Clean" tag, or a
-// "Clean Version/Edit" / "- Clean" suffix.
-const CLEAN_LABEL_RE = /\(clean\b[^)]*\)|\[clean\b[^\]]*\]|\bclean version\b|\bclean edit\b|[-–]\s*clean\s*$/i;
-function normForCleanMatch(s?: string): string {
-    return (s || "").toLowerCase()
-        .replace(/\((clean|explicit)[^)]*\)/g, "")
-        .replace(/\[(clean|explicit)[^\]]*\]/g, "")
-        .replace(/[-–]\s*(clean|explicit)\s*$/g, "")
-        .replace(/\s+/g, " ").trim();
-}
-// Drops items labelled "Clean", and non-explicit items that have an explicit
-// twin of the same name + artist in the same result set.
-function excludeCleanVariants<T extends { name?: string; artists?: string; album_name?: string; is_explicit?: boolean }>(items: T[]): T[] {
-    const explicitKeys = new Set<string>();
-    for (const it of items) {
-        if (it.is_explicit) explicitKeys.add(normForCleanMatch(it.name) + "" + (it.artists || "").toLowerCase());
-    }
-    return items.filter((it) => {
-        if (CLEAN_LABEL_RE.test(it.name || "") || CLEAN_LABEL_RE.test(it.album_name || "")) return false;
-        if (it.is_explicit === false && explicitKeys.has(normForCleanMatch(it.name) + "" + (it.artists || "").toLowerCase())) return false;
-        return true;
-    });
 }
 
 type SearchSource = "spotify" | "qobuz";

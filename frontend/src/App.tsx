@@ -445,7 +445,9 @@ function App() {
                 return <LyricsManagerPage />;
             default:
                 return (<>
-                    <Header />
+                    {/* The big brand header only shows while searching/landing —
+                        item pages need the vertical space. */}
+                    {!(metadata.metadata && !isSearchMode) && <Header />}
 
 
 

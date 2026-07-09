@@ -846,7 +846,7 @@ export function LibraryPage() {
                                     <button key={f.value} onClick={() => push({ kind: "songs", filters: { [field]: f.value }, label: f.value })}
                                         className="text-left bg-card hover:bg-accent transition rounded-lg p-4 h-24 flex flex-col justify-between">
                                         <div className="font-semibold truncate">{f.value}</div>
-                                        <div className="text-xs text-muted-foreground">{f.count} songs</div>
+                                        <div className="text-xs text-muted-foreground">{f.count} song{f.count === 1 ? "" : "s"}</div>
                                     </button>
                                 );
                             })}

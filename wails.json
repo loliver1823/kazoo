@@ -1,6 +1,6 @@
 {
   "$schema": "https://wails.io/schemas/config.v2.json",
-  "name": "Spindle Music Manager",
+  "name": "Spindle",
   "outputfilename": "Spindle",
   "frontend:install": "pnpm install --ignore-scripts",
   "frontend:dev:install": "pnpm install --ignore-scripts",
@@ -12,7 +12,7 @@
   },
   "info": {
     "productName": "Spindle Music Manager",
-    "productVersion": "1.0.1",
+    "productVersion": "1.1.0",
     "copyright": "© 2026 loliver1823"
   },
   "wailsjsdir": "./frontend",

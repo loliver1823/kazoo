@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,6 +35,28 @@ type DownloadItem struct {
 	EndTime      int64          `json:"end_time"`
 	ErrorMessage string         `json:"error_message"`
 	FilePath     string         `json:"file_path"`
+	// Track metadata captured at enqueue time so the backend queue runner can
+	// download without the frontend — and so restarts resume with everything.
+	Artists     string `json:"artists,omitempty"`
+	AlbumArtist string `json:"album_artist,omitempty"`
+	ReleaseDate string `json:"release_date,omitempty"`
+	CoverURL    string `json:"cover_url,omitempty"`
+	DurationMs  int    `json:"duration_ms,omitempty"`
+	TrackNo     int    `json:"track_no,omitempty"`
+	DiscNo      int    `json:"disc_no,omitempty"`
+	TotalTracks int    `json:"total_tracks,omitempty"`
+	TotalDiscs  int    `json:"total_discs,omitempty"`
+	Copyright   string `json:"copyright,omitempty"`
+	Publisher   string `json:"publisher,omitempty"`
+	ISRC        string `json:"isrc,omitempty"`
+	Category    string `json:"category,omitempty"`
+	UPC         string `json:"upc,omitempty"`
+	Position    int    `json:"position,omitempty"`
+	// Service pin: "" = follow settings; "qobuz" = Qobuz-direct search result.
+	Service string `json:"service,omitempty"`
+	// ApplyFolder: render the folder template for this item (batch downloads
+	// always do; singles follow the applyFolderToSingleTrack setting).
+	ApplyFolder bool `json:"apply_folder,omitempty"`
 }
 
 var (
@@ -452,6 +475,66 @@ func AddToQueue(id, trackName, artistName, albumName, spotifyID string) {
 	sessionStartLock.Unlock()
 
 	go persistQueue()
+}
+
+// AddToQueueEx enqueues a metadata-rich item for the backend queue runner.
+// Returns the item's ID (assigned when empty).
+func AddToQueueEx(item DownloadItem) string {
+	if item.ID == "" {
+		base := item.SpotifyID
+		if base == "" {
+			base = item.TrackName + "-" + item.ArtistName
+		}
+		item.ID = base + "-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	}
+	item.Status = StatusQueued
+	item.Progress = 0
+	item.TotalSize = 0
+	item.Speed = 0
+	item.StartTime = 0
+	item.EndTime = 0
+	item.ErrorMessage = ""
+	item.FilePath = ""
+
+	downloadQueueLock.Lock()
+	downloadQueue = append(downloadQueue, item)
+	downloadQueueLock.Unlock()
+
+	sessionStartLock.Lock()
+	if sessionStartTime == 0 {
+		sessionStartTime = time.Now().Unix()
+	}
+	sessionStartLock.Unlock()
+
+	go persistQueue()
+	return item.ID
+}
+
+// ClaimNextQueued returns a copy of the oldest queued item without changing
+// its status (the download flow flips it to downloading itself).
+func ClaimNextQueued() (DownloadItem, bool) {
+	downloadQueueLock.RLock()
+	defer downloadQueueLock.RUnlock()
+	for i := range downloadQueue {
+		if downloadQueue[i].Status == StatusQueued {
+			return downloadQueue[i], true
+		}
+	}
+	return DownloadItem{}, false
+}
+
+// CooldownRemainingSecs reports how long the community cooldown has left.
+func CooldownRemainingSecs() int {
+	cooldownLock.RLock()
+	defer cooldownLock.RUnlock()
+	if cooldownUntilMs == 0 {
+		return 0
+	}
+	remain := cooldownUntilMs - time.Now().UnixMilli()
+	if remain <= 0 {
+		return 0
+	}
+	return int(remain / 1000)
 }
 
 func StartDownloadItem(id string) {

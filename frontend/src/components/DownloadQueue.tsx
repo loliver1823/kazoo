@@ -3,10 +3,18 @@ import { X, Download, CheckCircle2, XCircle, Clock, FileCheck, Trash2, HardDrive
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { GetDownloadQueue, ClearCompletedDownloads, ClearAllDownloads, ExportFailedDownloads, SetQueuePaused, RemoveDownloadItems, ForceStopDownloads } from "../../wailsjs/go/main/App";
+import { GetDownloadQueue, ClearCompletedDownloads, ClearAllDownloads, ExportFailedDownloads, SetQueuePaused, RemoveDownloadItems, RequeueDownloadItems, ForceStopDownloads } from "../../wailsjs/go/main/App";
 import { toastWithSound as toast } from "@/lib/toast-with-sound";
 import { backend } from "../../wailsjs/go/models";
-import { useDownload } from "@/hooks/useDownload";
+
+// Show paths library-relative — the full path is noise (and shows up in
+// screenshots); it stays available as a hover tooltip.
+function compactPath(p: string): string {
+    if (!p) return "";
+    const parts = p.split(/[\\/]/).filter(Boolean);
+    if (parts.length <= 3) return p;
+    return parts.slice(-3).join("\\");
+}
 
 // Shared queue view — rendered both as the Queue page (sidebar) and inside
 // the legacy dialog. Polls while mounted.
@@ -33,7 +41,7 @@ export function DownloadQueueView({ onClose }: { onClose?: () => void }) {
             }
         };
         fetchQueue();
-        const interval = setInterval(fetchQueue, 500);
+        const interval = setInterval(fetchQueue, 400);
         return () => clearInterval(interval);
     }, []);
     const handleClearHistory = async () => {
@@ -119,14 +127,32 @@ export function DownloadQueueView({ onClose }: { onClose?: () => void }) {
         }
     };
     const [filterStatus, setFilterStatus] = useState<string>("all");
+    const [showAllDone, setShowAllDone] = useState(false);
     const toggleFilter = (status: string) => {
         setFilterStatus(prev => prev === status ? "all" : status);
     };
-    const filteredQueue = queueInfo.queue.filter((item: any) => {
+    // Active work first; in the unfiltered view, collapse the wall of
+    // completed/skipped rows so queued and downloading items stay visible.
+    const DONE_PREVIEW = 6;
+    const baseQueue = queueInfo.queue.filter((item: any) => {
         if (filterStatus === "all")
             return true;
         return item.status === filterStatus;
     });
+    const isTerminalOk = (s: string) => s === "completed" || s === "skipped";
+    let hiddenDone = 0;
+    let filteredQueue = baseQueue;
+    if (filterStatus === "all" && !showAllDone) {
+        const active = baseQueue.filter((i: any) => !isTerminalOk(i.status));
+        const done = baseQueue.filter((i: any) => isTerminalOk(i.status));
+        hiddenDone = Math.max(0, done.length - DONE_PREVIEW);
+        filteredQueue = [...active, ...done.slice(0, DONE_PREVIEW)];
+    } else if (filterStatus === "all") {
+        filteredQueue = [
+            ...baseQueue.filter((i: any) => !isTerminalOk(i.status)),
+            ...baseQueue.filter((i: any) => isTerminalOk(i.status)),
+        ];
+    }
 
     // Multi-select (ctrl toggles, shift ranges over the visible list).
     const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -151,24 +177,20 @@ export function DownloadQueueView({ onClose }: { onClose?: () => void }) {
         if (!e.shiftKey) lastClickIdx.current = index;
     };
 
-    const { handleDownloadTrack } = useDownload();
     const [retrying, setRetrying] = useState(false);
     const selectedItems = queueInfo.queue.filter((i: any) => selected.has(i.id));
-    const retryable = selectedItems.filter((i: any) => i.status === "failed" || i.status === "skipped" || i.status === "queued");
-    const spotifyIdOf = (item: any): string => item.spotify_id || String(item.id || "").split("-")[0];
+    const retryable = selectedItems.filter((i: any) => i.status === "failed" || i.status === "skipped");
 
+    // Failed/skipped items keep their metadata, so retry is just a requeue —
+    // the backend runner picks them up again.
     const retrySelected = async () => {
         if (!retryable.length || retrying) return;
         setRetrying(true);
         try {
-            const items = [...retryable];
-            await RemoveDownloadItems(items.map((i: any) => i.id));
+            await RequeueDownloadItems(retryable.map((i: any) => i.id));
             setSelected(new Set());
-            for (const item of items) {
-                const sid = spotifyIdOf(item);
-                if (!sid) continue;
-                await handleDownloadTrack(sid, item.track_name, item.artist_name, item.album_name, sid.startsWith("qobuz_") ? undefined : sid);
-            }
+            const info = await GetDownloadQueue();
+            setQueueInfo(info);
         } finally { setRetrying(false); }
     };
 
@@ -347,8 +369,10 @@ export function DownloadQueueView({ onClose }: { onClose?: () => void }) {
                       <div className="flex items-center justify-between mt-1.5 text-xs text-muted-foreground font-mono">
                         <span>
                           {item.progress > 0
-                            ? `${item.progress.toFixed(2)}${item.total_size > 0 ? ` / ${item.total_size.toFixed(2)}` : ""} MB`
-                            : "Starting..."}
+                            ? (pct !== null && pct >= 99.5
+                                ? "Finishing (tagging)…"
+                                : `${item.progress.toFixed(2)}${item.total_size > 0 ? ` / ${item.total_size.toFixed(2)}` : ""} MB`)
+                            : "Preparing (resolving source)…"}
                         </span>
                         <span>
                           {pct !== null ? `${pct.toFixed(0)}% · ` : ""}
@@ -374,12 +398,24 @@ export function DownloadQueueView({ onClose }: { onClose?: () => void }) {
                 </div>)}
 
 
-                {(item.status === "completed" || item.status === "skipped") && item.file_path && (<div className="mt-1.5 text-xs text-muted-foreground truncate font-mono">
-                  {item.file_path}
+                {(item.status === "completed" || item.status === "skipped") && item.file_path && (<div className="mt-1.5 text-xs text-muted-foreground truncate font-mono" title={item.file_path}>
+                  {compactPath(item.file_path)}
                 </div>)}
               </div>
             </div>
           </div>)))}
+          {hiddenDone > 0 && (
+            <button type="button" onClick={() => setShowAllDone(true)}
+              className="w-full text-center text-sm text-muted-foreground hover:text-foreground py-2 rounded-lg border border-dashed cursor-pointer transition-colors">
+              Show {hiddenDone.toLocaleString()} more finished download{hiddenDone === 1 ? "" : "s"}
+            </button>
+          )}
+          {showAllDone && filterStatus === "all" && queueInfo.queue.length > DONE_PREVIEW && (
+            <button type="button" onClick={() => setShowAllDone(false)}
+              className="w-full text-center text-sm text-muted-foreground hover:text-foreground py-2 rounded-lg border border-dashed cursor-pointer transition-colors">
+              Collapse finished downloads
+            </button>
+          )}
         </div>
       </div>
     </div>);
