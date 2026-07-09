@@ -24,6 +24,18 @@ import (
 
 type App struct {
 	ctx context.Context
+	// serveMode: running headless behind the HTTP bridge (browser/Android)
+	// instead of a Wails window — no native dialogs, events go via WebSocket.
+	serveMode bool
+}
+
+// emit sends a frontend event through whichever bridge is live: the Wails
+// runtime in desktop mode, the WebSocket hub in serve mode.
+func (a *App) emit(name string, data ...interface{}) {
+	if !a.serveMode && a.ctx != nil {
+		runtime.EventsEmit(a.ctx, name, data...)
+	}
+	serveBroadcast(name, data...)
 }
 
 type CurrentIPInfo struct {
@@ -276,7 +288,7 @@ func (a *App) startup(ctx context.Context) {
 	go a.runDownloadQueue()
 	// Real-time library watching: OS file events → targeted scans → UI event.
 	if err := backend.StartLibraryWatcher(func(ch backend.WatchChange) {
-		runtime.EventsEmit(a.ctx, "library:changed", ch)
+		a.emit("library:changed", ch)
 	}); err != nil {
 		backend.Dbgf("Failed to start library watcher: %v\n", err)
 	}
@@ -321,6 +333,9 @@ func (a *App) ApplyUpdate(assetURL string) (string, error) {
 	if restarting {
 		go func() {
 			time.Sleep(1500 * time.Millisecond)
+			if a.serveMode {
+				os.Exit(0)
+			}
 			runtime.Quit(a.ctx)
 		}()
 	}
@@ -350,7 +365,7 @@ func (a *App) EnsureLibraryFolder(path string) (bool, error) {
 			res, scanErr := backend.ScanLibraryFolder(path, false, a.scanProgress)
 			backend.RefreshLibraryWatcher()
 			if scanErr == nil && (res.Added > 0 || res.Updated > 0) {
-				runtime.EventsEmit(a.ctx, "library:changed", map[string]any{
+				a.emit("library:changed", map[string]any{
 					"added": res.Added, "updated": res.Updated, "removed": 0,
 				})
 			}
@@ -367,7 +382,7 @@ func (a *App) RescanLibrary() (backend.ScanResult, error) {
 }
 
 func (a *App) scanProgress(done, total int, current string) {
-	runtime.EventsEmit(a.ctx, "library:scan-progress", map[string]any{
+	a.emit("library:scan-progress", map[string]any{
 		"done": done, "total": total, "current": current,
 	})
 }
@@ -900,7 +915,7 @@ func (a *App) GetSpotifyMetadata(req SpotifyMetadataRequest) (string, error) {
 	}
 
 	data, err := backend.GetFilteredSpotifyData(ctx, req.URL, req.Batch, time.Duration(req.Delay*float64(time.Second)), separator, func(tracks interface{}) {
-		runtime.EventsEmit(a.ctx, "metadata-stream", tracks)
+		a.emit("metadata-stream", tracks)
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch metadata: %v", err)
@@ -1440,10 +1455,16 @@ func (a *App) OpenConfigFolder() error {
 }
 
 func (a *App) SelectFolder(defaultPath string) (string, error) {
+	if a.serveMode {
+		return "", fmt.Errorf("folder picker not available in server mode")
+	}
 	return backend.SelectFolderDialog(a.ctx, defaultPath)
 }
 
 func (a *App) SelectFile() (string, error) {
+	if a.serveMode {
+		return "", fmt.Errorf("file picker not available in server mode")
+	}
 	return backend.SelectFileDialog(a.ctx)
 }
 
@@ -1515,6 +1536,9 @@ func (a *App) ForceStopDownloads() {
 }
 
 func (a *App) ExportFailedDownloads() (string, error) {
+	if a.serveMode {
+		return "", fmt.Errorf("save dialog not available in server mode")
+	}
 	queueInfo := backend.GetDownloadQueue()
 	var failedItems []string
 
@@ -2432,19 +2456,19 @@ type DownloadFFmpegResponse struct {
 }
 
 func (a *App) DownloadFFmpeg() DownloadFFmpegResponse {
-	runtime.EventsEmit(a.ctx, "ffmpeg:status", "starting")
+	a.emit("ffmpeg:status", "starting")
 	err := backend.DownloadFFmpeg(func(progress int) {
-		runtime.EventsEmit(a.ctx, "ffmpeg:progress", progress)
+		a.emit("ffmpeg:progress", progress)
 	})
 	if err != nil {
-		runtime.EventsEmit(a.ctx, "ffmpeg:status", "failed")
+		a.emit("ffmpeg:status", "failed")
 		return DownloadFFmpegResponse{
 			Success: false,
 			Error:   err.Error(),
 		}
 	}
 
-	runtime.EventsEmit(a.ctx, "ffmpeg:status", "completed")
+	a.emit("ffmpeg:status", "completed")
 	return DownloadFFmpegResponse{
 		Success: true,
 		Message: "FFmpeg installed successfully",
@@ -2466,20 +2490,20 @@ type InstallFFmpegWithBrewResponse struct {
 }
 
 func (a *App) InstallFFmpegWithBrew() InstallFFmpegWithBrewResponse {
-	runtime.EventsEmit(a.ctx, "ffmpeg:status", "Installing FFmpeg via Homebrew...")
+	a.emit("ffmpeg:status", "Installing FFmpeg via Homebrew...")
 	err := backend.InstallFFmpegWithBrew(func(progress int, status string) {
-		runtime.EventsEmit(a.ctx, "ffmpeg:progress", progress)
-		runtime.EventsEmit(a.ctx, "ffmpeg:status", status)
+		a.emit("ffmpeg:progress", progress)
+		a.emit("ffmpeg:status", status)
 	})
 	if err != nil {
-		runtime.EventsEmit(a.ctx, "ffmpeg:status", "failed")
+		a.emit("ffmpeg:status", "failed")
 		return InstallFFmpegWithBrewResponse{
 			Success: false,
 			Error:   err.Error(),
 		}
 	}
 
-	runtime.EventsEmit(a.ctx, "ffmpeg:status", "completed")
+	a.emit("ffmpeg:status", "completed")
 	return InstallFFmpegWithBrewResponse{
 		Success: true,
 		Message: "FFmpeg installed successfully via Homebrew",
@@ -2519,6 +2543,9 @@ func (a *App) ResampleAudio(req ResampleAudioRequest) ([]backend.ResampleResult,
 }
 
 func (a *App) SelectAudioFiles() ([]string, error) {
+	if a.serveMode {
+		return nil, fmt.Errorf("file picker not available in server mode")
+	}
 	files, err := backend.SelectMultipleFiles(a.ctx)
 	if err != nil {
 		return nil, err
@@ -2570,6 +2597,9 @@ func (a *App) ExtractLyricsToLRC(filePath string, overwrite bool) (*backend.Extr
 }
 
 func (a *App) SelectLyricsFiles() ([]string, error) {
+	if a.serveMode {
+		return nil, fmt.Errorf("file picker not available in server mode")
+	}
 	files, err := backend.SelectLyricsFiles(a.ctx)
 	if err != nil {
 		return nil, err
@@ -2578,6 +2608,9 @@ func (a *App) SelectLyricsFiles() ([]string, error) {
 }
 
 func (a *App) SelectLyricsFolder() (string, error) {
+	if a.serveMode {
+		return "", fmt.Errorf("folder picker not available in server mode")
+	}
 	return backend.SelectLyricsFolder(a.ctx)
 }
 
@@ -2636,6 +2669,9 @@ func (a *App) RenameFileTo(oldPath, newName string) error {
 }
 
 func (a *App) SelectImageVideo() ([]string, error) {
+	if a.serveMode {
+		return nil, fmt.Errorf("file picker not available in server mode")
+	}
 	return backend.SelectImageVideoDialog(a.ctx)
 }
 

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"log"
+	"os"
 
 	"spindle/backend"
 
@@ -32,6 +34,21 @@ func main() {
 	}
 
 	app := NewApp()
+
+	// Headless mode: `spindle serve [addr]` runs the full app behind an HTTP
+	// bridge — the portability layer for browsers and the Android shell.
+	if len(os.Args) > 1 && os.Args[1] == "serve" {
+		addr := "127.0.0.1:8899"
+		if len(os.Args) > 2 {
+			addr = os.Args[2]
+		}
+		app.serveMode = true
+		app.startup(context.Background())
+		if err := app.StartServe(addr); err != nil {
+			log.Fatal("Serve error:", err.Error())
+		}
+		return
+	}
 
 	err := wails.Run(&options.App{
 		Title:     "Spindle Music Manager",
