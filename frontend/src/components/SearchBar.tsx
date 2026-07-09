@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { InputWithContext } from "@/components/ui/input-with-context";
 import { CloudDownload, XCircle, Link, Search, ChevronDown, ArrowUpDown, Check, } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
-import { Tooltip, TooltipContent, TooltipTrigger, } from "@/components/ui/tooltip";
 import { SearchSpotify, SearchSpotifyByType, SearchSpotifyProfiles, GetUserPlaylists, SearchQobuzTracks } from "../../wailsjs/go/main/App";
 import { BrowserOpenURL } from "../../wailsjs/runtime/runtime";
 import { useDownload } from "@/hooks/useDownload";
