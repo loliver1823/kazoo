@@ -396,6 +396,20 @@ func parseArtists(tags map[string][]string, title, albumArtist string) (display 
 		primaries = append(primaries, splitArtists(raw)...)
 	}
 
+	// A "(feat. X)" credit in the title outranks the artist tag: X is a guest
+	// even when the tag lists them, else their page claims the album as own.
+	featSet := map[string]bool{}
+	for _, f := range feat {
+		featSet[normKey(f)] = true
+	}
+	kept := primaries[:0]
+	for _, p := range primaries {
+		if !featSet[normKey(p)] {
+			kept = append(kept, p)
+		}
+	}
+	primaries = kept
+
 	primarySet := map[string]bool{}
 	for _, p := range primaries {
 		primarySet[normKey(p)] = true

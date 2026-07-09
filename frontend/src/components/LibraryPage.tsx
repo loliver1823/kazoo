@@ -1102,7 +1102,9 @@ function ArtistView({ releases, name, bust, onOpenAlbum, onAllSongs, onArtist, o
     const { handleDownloadTrack, downloadingTrack } = useDownload();
     const downloadPopular = (t: backend.ArtistTopTrack) => {
         // Clicking while something downloads enqueues it (shared chain).
-        handleDownloadTrack(t.spotifyId, t.title, name, t.album, t.spotifyId);
+        // t.artist carries the FULL credited artists ("Lana Del Rey, Bleachers")
+        // — the page artist may only be featured on the track.
+        handleDownloadTrack(t.spotifyId, t.title, t.artist || name, t.album, t.spotifyId);
     };
     const [fixTrack, setFixTrack] = useState<backend.ArtistTopTrack | null>(null);
     const reloadTopTracks = () => GetArtistTopTracks(name).then((t) => setTopTracks(t || [])).catch(() => { });
