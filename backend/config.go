@@ -177,12 +177,12 @@ func LoadConfigSettings() (map[string]interface{}, error) {
 func GetRedownloadWithSuffixSetting() bool {
 	settings, err := LoadConfigSettings()
 	if err != nil || settings == nil {
-		return true
+		return false
 	}
 
 	enabled, ok := settings["redownloadWithSuffix"].(bool)
 	if !ok {
-		return true
+		return false
 	}
 	return enabled
 }

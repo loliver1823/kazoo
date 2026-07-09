@@ -225,7 +225,7 @@ export const DEFAULT_SETTINGS: Settings = {
     useSingleGenre: false,
     embedGenre: false,
     lastfmApiKey: "",
-    redownloadWithSuffix: true,
+    redownloadWithSuffix: false,
     separator: "semicolon",
 };
 export const FONT_OPTIONS: FontOption[] = [

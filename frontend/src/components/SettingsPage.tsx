@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { InputWithContext } from "@/components/ui/input-with-context";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
-import { FolderOpen, Save, RotateCcw, ArrowRight, MonitorCog, FolderCog, Router, FolderLock, Plus, Trash2, ExternalLink, PlugZap, Download, Tags, FileSignature } from "lucide-react";
+import { FolderOpen, Save, RotateCcw, ArrowRight, MonitorCog, FolderCog, Router, FolderLock, Plus, Trash2, ExternalLink, PlugZap, Download, Tags } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { getSettings, getSettingsWithDefaults, saveSettings, resetToDefaultSettings, applyThemeMode, applyFont, getFontOptions, parseGoogleFontUrl, loadGoogleFontUrl, loadCustomFonts, saveCustomFonts, TEMPLATE_VARIABLES, DEFAULT_SETTINGS, sanitizeAutoOrder, type Settings as SettingsType, type FontFamily, type CustomFontFamily, type ExistingFileCheckMode, } from "@/lib/settings";
@@ -259,7 +259,7 @@ export function SettingsPage({ onUnsavedChangesChange, onResetRequest, }: Settin
             toast.error(`Failed to check Qobuz-DL instance: ${error}`);
         }
     };
-    const [activeTab, setActiveTab] = useState<"general" | "download" | "naming" | "files" | "metadata" | "status">("general");
+    const [activeTab, setActiveTab] = useState<"general" | "download" | "naming" | "metadata" | "status">("general");
     return (<div className="space-y-4 h-full flex flex-col">
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-2xl font-bold">Settings</h1>
@@ -296,12 +296,8 @@ export function SettingsPage({ onUnsavedChangesChange, onResetRequest, }: Settin
           Download
         </Button>
         <Button variant={activeTab === "naming" ? "default" : "ghost"} size="sm" onClick={() => setActiveTab("naming")} className="rounded-b-none gap-2">
-          <FileSignature className="h-4 w-4"/>
-          Naming
-        </Button>
-        <Button variant={activeTab === "files" ? "default" : "ghost"} size="sm" onClick={() => setActiveTab("files")} className="rounded-b-none gap-2">
           <FolderCog className="h-4 w-4"/>
-          File Management
+          Files &amp; Naming
         </Button>
         <Button variant={activeTab === "metadata" ? "default" : "ghost"} size="sm" onClick={() => setActiveTab("metadata")} className="rounded-b-none gap-2">
           <Tags className="h-4 w-4"/>
@@ -672,10 +668,8 @@ export function SettingsPage({ onUnsavedChangesChange, onResetRequest, }: Settin
                     ]),
                     { title: "Folder Structure", titleAccessory: folderSingleTrackToggle, value: tempSettings.folderTemplate, defaultValue: DEFAULT_SETTINGS.folderTemplate, suffix: "/", placeholder: "{album_artist}/{album}", column: "right" as const, onChange: (next: string) => setTempSettings((prev) => ({ ...prev, folderTemplate: next })) },
                 ]}/>
-            </div>);
-        })()}
 
-        {activeTab === "files" && (<div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-8 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-8 items-start border-t pt-6">
             <div className="space-y-4 lg:pr-8 lg:border-r">
               <h3 className="text-sm font-semibold text-muted-foreground">File Output</h3>
 
@@ -759,7 +753,9 @@ export function SettingsPage({ onUnsavedChangesChange, onResetRequest, }: Settin
                 </Label>
               </div>
             </div>
-          </div>)}
+              </div>
+            </div>);
+        })()}
 
         {activeTab === "metadata" && (<div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <div className="space-y-4">
