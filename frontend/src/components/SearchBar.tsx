@@ -40,6 +40,7 @@ interface SearchBarProps {
     hasResult: boolean;
     searchMode: boolean;
     onSearchModeChange: (isSearch: boolean) => void;
+    onBrowseQobuzArtist?: (name: string) => void;
 }
 
 type SearchSource = "spotify" | "qobuz";
@@ -56,6 +57,7 @@ let searchCache: {
     hasMore: Record<ResultTab, boolean>;
     source: SearchSource;
     qobuzTracks: backend.QobuzSearchTrack[];
+    qobuzArtists: backend.QobuzArtistHit[];
 } | null = null;
 
 // True when there are cached search results to return to — used by the
@@ -69,7 +71,7 @@ export function hasCachedSearchResults(): boolean {
         || searchCache.qobuzTracks.length > 0;
 }
 
-export function SearchBar({ url, loading, onUrlChange, onFetch, onFetchUrl, searchMode, onSearchModeChange, }: SearchBarProps) {
+export function SearchBar({ url, loading, onUrlChange, onFetch, onFetchUrl, searchMode, onSearchModeChange, onBrowseQobuzArtist, }: SearchBarProps) {
     const [searchQuery, setSearchQuery] = useState(searchCache?.query ?? "");
     const [searchResults, setSearchResults] = useState<backend.SearchResponse | null>(searchCache?.results ?? null);
     const [resultFilter, setResultFilter] = useState("");
@@ -100,6 +102,7 @@ export function SearchBar({ url, loading, onUrlChange, onFetch, onFetchUrl, sear
     });
     const [searchSource, setSearchSource] = useState<SearchSource>(searchCache?.source ?? "spotify");
     const [qobuzTracks, setQobuzTracks] = useState<backend.QobuzSearchTrack[]>(searchCache?.qobuzTracks ?? []);
+    const [qobuzArtists, setQobuzArtists] = useState<backend.QobuzArtistHit[]>(searchCache?.qobuzArtists ?? []);
     const [qobuzSort, setQobuzSort] = useState("default");
     const { handleDownloadTrack, downloadingTrack, downloadedTracks } = useDownload();
     const qobuzDisplayed = useMemo(() => {
@@ -125,8 +128,8 @@ export function SearchBar({ url, loading, onUrlChange, onFetch, onFetchUrl, sear
         return list;
     }, [qobuzTracks, resultFilter, qobuzSort]);
     useEffect(() => {
-        searchCache = { query: searchQuery, lastSearchedQuery, results: searchResults, profiles, profileView, activeTab, hasMore, source: searchSource, qobuzTracks };
-    }, [searchQuery, lastSearchedQuery, searchResults, profiles, profileView, activeTab, hasMore, searchSource, qobuzTracks]);
+        searchCache = { query: searchQuery, lastSearchedQuery, results: searchResults, profiles, profileView, activeTab, hasMore, source: searchSource, qobuzTracks, qobuzArtists };
+    }, [searchQuery, lastSearchedQuery, searchResults, profiles, profileView, activeTab, hasMore, searchSource, qobuzTracks, qobuzArtists]);
     const [showInvalidUrlDialog, setShowInvalidUrlDialog] = useState(false);
     const [invalidUrl, setInvalidUrl] = useState("");
     const hideClean = useHideClean();
@@ -147,14 +150,19 @@ export function SearchBar({ url, loading, onUrlChange, onFetch, onFetchUrl, sear
             setIsSearching(true);
             if (searchSource === "qobuz") {
                 try {
-                    const r = await SearchQobuzTracks(searchQuery);
+                    const [r, arts] = await Promise.all([
+                        SearchQobuzTracks(searchQuery),
+                        (window as any)["go"]["main"]["App"]["SearchQobuzArtists"](searchQuery).catch(() => []),
+                    ]);
                     setQobuzTracks(r || []);
+                    setQobuzArtists(arts || []);
                     setLastSearchedQuery(searchQuery.trim());
                     setResultFilter("");
                 }
                 catch (error) {
                     console.error("Qobuz search failed:", error);
                     setQobuzTracks([]);
+                    setQobuzArtists([]);
                 }
                 finally {
                     setIsSearching(false);
@@ -533,9 +541,31 @@ export function SearchBar({ url, loading, onUrlChange, onFetch, onFetchUrl, sear
               <span className="ml-2 text-muted-foreground">Searching...</span>
             </div>)}
 
-          {!isSearching && searchSource === "qobuz" && searchQuery && lastSearchedQuery && qobuzTracks.length === 0 && (
+          {!isSearching && searchSource === "qobuz" && searchQuery && lastSearchedQuery && qobuzTracks.length === 0 && qobuzArtists.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               No results found for "{searchQuery}"
+            </div>
+          )}
+
+          {!isSearching && searchSource === "qobuz" && qobuzArtists.length > 0 && (
+            <div className="mb-6">
+              <div className="text-sm font-semibold text-muted-foreground mb-2">Artists</div>
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {qobuzArtists.map((a) => (
+                  <button key={a.id} type="button"
+                    className="flex items-center gap-3 shrink-0 rounded-lg bg-card hover:bg-accent border px-3 py-2 cursor-pointer transition-colors text-left"
+                    title="Browse this artist's full Qobuz catalog"
+                    onClick={() => { onSearchModeChange(false); onBrowseQobuzArtist?.(a.name); }}>
+                    {a.image
+                      ? <img src={a.image} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+                      : <div className="h-10 w-10 rounded-full bg-muted shrink-0" />}
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate max-w-44">{a.name}</div>
+                      <div className="text-xs text-muted-foreground">{a.albumsCount.toLocaleString()} release{a.albumsCount === 1 ? "" : "s"}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

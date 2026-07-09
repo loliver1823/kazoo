@@ -125,6 +125,39 @@ func qobuzReleaseType(a qobuzCatalogAlbum) string {
 	}
 }
 
+// QobuzArtistHit is a search result for the download page's Qobuz mode.
+type QobuzArtistHit struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	AlbumsCount int    `json:"albumsCount"`
+	Image       string `json:"image"`
+}
+
+// SearchQobuzArtists finds artists in Qobuz's catalog — the entry point for
+// artists who have no Spotify presence at all.
+func SearchQobuzArtists(query string) ([]QobuzArtistHit, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return []QobuzArtistHit{}, nil
+	}
+	var search qobuzArtistSearchResponse
+	if err := doQobuzSignedJSONRequest("artist/search", url.Values{
+		"query": {query}, "limit": {"8"},
+	}, &search); err != nil {
+		return nil, fmt.Errorf("qobuz artist search: %w", err)
+	}
+	out := make([]QobuzArtistHit, 0, len(search.Artists.Items))
+	for _, a := range search.Artists.Items {
+		out = append(out, QobuzArtistHit{
+			ID:          a.ID,
+			Name:        a.Name,
+			AlbumsCount: a.AlbumsCount,
+			Image:       qobuzImageURL(a.Image, a.Picture),
+		})
+	}
+	return out, nil
+}
+
 // GetQobuzArtistDiscography searches Qobuz for the artist and assembles their
 // full discography (albums + every track) as an ArtistDiscographyPayload.
 func GetQobuzArtistDiscography(name string) (*ArtistDiscographyPayload, error) {

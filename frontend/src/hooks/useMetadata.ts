@@ -197,6 +197,26 @@ export function useMetadata() {
         try {
             const jsonString = await (window as any)["go"]["main"]["App"]["GetQobuzArtistDiscography"](artistName);
             const data = JSON.parse(jsonString);
+            // Switching catalog source shouldn't lose the artist's identity —
+            // keep the richer Spotify profile (bio, banner, gallery, stats)
+            // and only swap the discography underneath it.
+            const prev: any = previousView;
+            if (prev && "artist_info" in prev && prev.artist_info) {
+                const p = prev.artist_info;
+                data.artist_info = {
+                    ...data.artist_info,
+                    name: p.name || data.artist_info.name,
+                    images: p.images || data.artist_info.images,
+                    header: p.header,
+                    gallery: p.gallery,
+                    biography: p.biography,
+                    followers: p.followers || 0,
+                    verified: p.verified,
+                    listeners: p.listeners,
+                    rank: p.rank,
+                    genres: (p.genres && p.genres.length) ? p.genres : data.artist_info.genres,
+                };
+            }
             pushView(previousView);
             setMetadata(data);
             logger.success(`Qobuz discography: ${data.album_list?.length || 0} releases, ${data.track_list?.length || 0} tracks`);

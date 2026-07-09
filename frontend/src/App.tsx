@@ -454,7 +454,7 @@ function App() {
 
 
 
-                    <SearchBar url={spotifyUrl} loading={metadata.loading} onUrlChange={setSpotifyUrl} onFetch={handleFetchMetadata} onFetchUrl={async (url) => {
+                    <SearchBar url={spotifyUrl} loading={metadata.loading} onUrlChange={setSpotifyUrl} onFetch={handleFetchMetadata} onBrowseQobuzArtist={metadata.fetchQobuzArtist} onFetchUrl={async (url) => {
                         setSpotifyUrl(url);
                         const updatedUrl = await metadata.handleFetchMetadata(url);
                         if (updatedUrl) {

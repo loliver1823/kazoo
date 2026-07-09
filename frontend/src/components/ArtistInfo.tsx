@@ -502,6 +502,13 @@ export function ArtistInfo({ artistInfo, albumList, trackList, onBrowseQobuz, se
           </div>
           <div className="flex items-center gap-3 mb-2">
             {isMetadataLoading && (<span className="flex items-center gap-1.5 text-xs text-muted-foreground"><Spinner className="h-3.5 w-3.5" /> loading discography…</span>)}
+            {!isMetadataLoading && onBrowseQobuz && artistInfo.discography_type !== "qobuz" && albumList.length > 3 && (
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground"
+                title="Load this artist's complete discography from Qobuz's catalog"
+                onClick={() => onBrowseQobuz(artistInfo.name)}>
+                Qobuz catalog
+              </Button>
+            )}
             <SourceSelect />
           </div>
         </div>

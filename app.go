@@ -610,6 +610,12 @@ func (a *App) GetQobuzArtistDiscography(name string) (string, error) {
 	return string(jsonData), nil
 }
 
+// SearchQobuzArtists finds artists in Qobuz's catalog — reachable even when
+// the artist has no Spotify presence at all.
+func (a *App) SearchQobuzArtists(query string) ([]backend.QobuzArtistHit, error) {
+	return backend.SearchQobuzArtists(query)
+}
+
 // SearchQobuzTracks searches Qobuz's catalog directly — for music that isn't
 // on Spotify.
 func (a *App) SearchQobuzTracks(query string) ([]backend.QobuzSearchTrack, error) {
