@@ -64,6 +64,31 @@ function App() {
     const availability = useAvailability();
     const downloadQueue = useDownloadQueueDialog();
     const downloadProgress = useDownloadProgress();
+    // Auto-update: startup check against GitHub Releases.
+    const [updateInfo, setUpdateInfo] = useState<{ available: boolean; current_version: string; latest_version: string; release_url: string; asset_url: string } | null>(null);
+    const [isApplyingUpdate, setIsApplyingUpdate] = useState(false);
+    useEffect(() => {
+        const t = window.setTimeout(async () => {
+            try {
+                if (getSettings().autoCheckUpdates === false) return;
+                const info = await (window as any)["go"]["main"]["App"]["CheckForUpdate"]();
+                if (info?.available) setUpdateInfo(info);
+            } catch { /* offline or rate-limited — try again next launch */ }
+        }, 6000);
+        return () => window.clearTimeout(t);
+    }, []);
+    const applyUpdate = async () => {
+        if (!updateInfo?.asset_url || isApplyingUpdate) return;
+        setIsApplyingUpdate(true);
+        try {
+            const message = await (window as any)["go"]["main"]["App"]["ApplyUpdate"](updateInfo.asset_url);
+            toast.info(message || "Update ready");
+            // On Windows/Linux the app quits itself and relaunches updated.
+        } catch (err) {
+            toast.error(`Update failed: ${err}`);
+            setIsApplyingUpdate(false);
+        }
+    };
     const [isFFmpegInstalled, setIsFFmpegInstalled] = useState<boolean | null>(null);
     const [isInstallingFFmpeg, setIsInstallingFFmpeg] = useState(false);
     const [ffmpegInstallProgress, setFfmpegInstallProgress] = useState(0);
@@ -485,6 +510,26 @@ function App() {
                         </Button>
                         <Button variant="destructive" onClick={handleDiscardChanges}>
                             Discard Changes
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!updateInfo} onOpenChange={(open) => { if (!open && !isApplyingUpdate) setUpdateInfo(null); }}>
+                <DialogContent className="sm:max-w-106.25">
+                    <DialogHeader>
+                        <DialogTitle>Update Available</DialogTitle>
+                        <DialogDescription>
+                            Spindle v{updateInfo?.latest_version} is out — you're on v{updateInfo?.current_version}.
+                            {isApplyingUpdate ? " Downloading the update…" : " Update now? The app restarts by itself."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" disabled={isApplyingUpdate} onClick={() => setUpdateInfo(null)}>
+                            Later
+                        </Button>
+                        <Button disabled={isApplyingUpdate} onClick={applyUpdate}>
+                            {isApplyingUpdate ? "Updating…" : "Update now"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

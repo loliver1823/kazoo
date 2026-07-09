@@ -41,6 +41,7 @@ export interface Settings {
     albumSubfolder?: boolean;
     trackNumber: boolean;
     sfxEnabled: boolean;
+    autoCheckUpdates: boolean;
     embedLyrics: boolean;
     autoDownloadLyrics: boolean;
     embedMaxQualityCover: boolean;
@@ -205,6 +206,7 @@ export const DEFAULT_SETTINGS: Settings = {
     useSeparateAlbumFilename: false,
     trackNumber: false,
     sfxEnabled: true,
+    autoCheckUpdates: true,
     embedLyrics: false,
     autoDownloadLyrics: true,
     embedMaxQualityCover: false,

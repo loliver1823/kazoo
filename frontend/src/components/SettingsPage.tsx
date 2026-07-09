@@ -397,6 +397,16 @@ export function SettingsPage({ onUnsavedChangesChange, onResetRequest, }: Settin
                   Sound Effects
                 </Label>
               </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <Switch id="auto-check-updates" checked={tempSettings.autoCheckUpdates !== false} onCheckedChange={(checked) => setTempSettings((prev) => ({
+                ...prev,
+                autoCheckUpdates: checked,
+            }))}/>
+                <Label htmlFor="auto-check-updates" className="cursor-pointer text-sm font-normal">
+                  Check for Updates on Launch
+                </Label>
+              </div>
             </div>
 
             <div className="space-y-4 md:pl-8">
