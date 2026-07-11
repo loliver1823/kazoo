@@ -5,16 +5,12 @@ import { TerminalIcon } from "@/components/ui/terminal";
 import { FileMusicIcon, type FileMusicIconHandle } from "@/components/ui/file-music";
 import { FilePenIcon, type FilePenIconHandle } from "@/components/ui/file-pen";
 import { FileTextIcon, type FileTextIconHandle } from "@/components/ui/file-text";
-import { BugReportIcon } from "@/components/ui/bug-report-icon";
 import { AudioLinesIcon, type AudioLinesIconHandle } from "@/components/ui/audio-lines";
 import { ToolCaseIcon } from "@/components/ui/tool-case";
 import { Library, Download, ListOrdered } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger, } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { openExternal } from "@/lib/utils";
 export type PageType = "main" | "library" | "playlist-sync" | "queue" | "settings" | "debug" | "audio-analysis" | "audio-converter" | "audio-resampler" | "file-manager" | "lyrics-manager" | "projects" | "support";
 interface SidebarProps {
     currentPage: PageType;
@@ -25,8 +21,6 @@ interface AnimatedIconHandle {
     stopAnimation: () => void;
 }
 export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
-    const [isIssuesDialogOpen, setIsIssuesDialogOpen] = useState(false);
-    const [hasIssueAgreement, setHasIssueAgreement] = useState(false);
     // Live count of active work (queued + downloading) for the Queue badge.
     const [activeQueueCount, setActiveQueueCount] = useState(0);
     useEffect(() => {
@@ -48,16 +42,6 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
     const converterIconRef = useRef<FileMusicIconHandle>(null);
     const fileManagerIconRef = useRef<FilePenIconHandle>(null);
     const lyricsManagerIconRef = useRef<FileTextIconHandle>(null);
-    const handleIssuesDialogChange = (open: boolean) => {
-        setIsIssuesDialogOpen(open);
-        if (!open) {
-            setHasIssueAgreement(false);
-        }
-    };
-    const handleOpenIssues = () => {
-        openExternal("https://github.com/loliver1823");
-        handleIssuesDialogChange(false);
-    };
     const getAnimatedItemHandlers = <T extends AnimatedIconHandle>(iconRef: RefObject<T | null>) => ({
         onMouseEnter: () => iconRef.current?.startAnimation(),
         onMouseLeave: () => iconRef.current?.stopAnimation(),
@@ -113,22 +97,11 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                     </TooltipContent>
                 </Tooltip>
 
-                <Tooltip delayDuration={0}>
-                    <TooltipTrigger asChild>
-                        <Button variant={currentPage === "debug" ? "secondary" : "ghost"} size="icon" className={`h-10 w-10 ${currentPage === "debug" ? "bg-primary/10 text-primary hover:bg-primary/20" : "hover:bg-primary/10 hover:text-primary"}`} onClick={() => onPageChange("debug")}>
-                            <TerminalIcon size={20} loop={true}/>
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                        <p>Debug Logs</p>
-                    </TooltipContent>
-                </Tooltip>
-
                 <DropdownMenu>
                     <Tooltip delayDuration={0}>
                         <DropdownMenuTrigger asChild>
                             <TooltipTrigger asChild>
-                                <Button variant={["audio-analysis", "audio-converter", "audio-resampler", "file-manager", "lyrics-manager"].includes(currentPage) ? "secondary" : "ghost"} size="icon" className={`h-10 w-10 ${["audio-analysis", "audio-converter", "audio-resampler", "file-manager", "lyrics-manager"].includes(currentPage) ? "bg-primary/10 text-primary hover:bg-primary/20" : "hover:bg-primary/10 hover:text-primary"}`}>
+                                <Button variant={["audio-analysis", "audio-converter", "audio-resampler", "file-manager", "lyrics-manager", "debug"].includes(currentPage) ? "secondary" : "ghost"} size="icon" className={`h-10 w-10 ${["audio-analysis", "audio-converter", "audio-resampler", "file-manager", "lyrics-manager", "debug"].includes(currentPage) ? "bg-primary/10 text-primary hover:bg-primary/20" : "hover:bg-primary/10 hover:text-primary"}`}>
                                     <ToolCaseIcon size={20}/>
                                 </Button>
                             </TooltipTrigger>
@@ -158,54 +131,13 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                             <FileTextIcon ref={lyricsManagerIconRef} size={16}/>
                             <span>Lyrics Manager</span>
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onPageChange("debug")} className="gap-3 cursor-pointer py-2 px-3">
+                            <TerminalIcon size={16}/>
+                            <span>Debug Logs</span>
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
 
-            <div className="mt-auto flex flex-col gap-2">
-                <Dialog open={isIssuesDialogOpen} onOpenChange={handleIssuesDialogChange}>
-                    <Tooltip delayDuration={0}>
-                        <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-primary/10 hover:text-primary" onClick={() => setIsIssuesDialogOpen(true)}>
-                                <BugReportIcon size={20} loop={true}/>
-                            </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                            <p>Report Bugs or Request Features</p>
-                        </TooltipContent>
-                    </Tooltip>
-                    <DialogContent className="max-w-xl">
-                        <DialogHeader>
-                            <DialogTitle>Before Opening GitHub Issues</DialogTitle>
-                            <DialogDescription />
-                        </DialogHeader>
-
-                        <div className="space-y-4 text-sm">
-                            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
-                                <p className="font-semibold text-amber-900 dark:text-amber-200">Important</p>
-                                <p className="mt-1 text-amber-950/90 dark:text-amber-100/90">
-                                    Search existing issues first and use the issue template when opening a new report or request.
-                                </p>
-                            </div>
-
-                            <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-4">
-                                <Checkbox className="shrink-0" checked={hasIssueAgreement} onCheckedChange={(checked) => setHasIssueAgreement(checked === true)}/>
-                                <span className="leading-5 text-foreground/90">
-                                    I understand that I should use the issue template and avoid duplicate issues.
-                                </span>
-                            </label>
-                        </div>
-
-                        <DialogFooter className="sm:justify-between gap-2">
-                            <Button variant="outline" onClick={() => handleIssuesDialogChange(false)}>
-                                Cancel
-                            </Button>
-                            <Button disabled={!hasIssueAgreement} onClick={handleOpenIssues}>
-                                Open Issues
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
         </div>);
 }

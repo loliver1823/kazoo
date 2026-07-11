@@ -18,7 +18,8 @@ Built with Go + [Wails](https://wails.io) and React. Windows · macOS · Linux �
 
 ### 🗂️ Library
 - **Plex-style library** over your local files — artists, albums, songs, years, genres, all backed by a fast SQLite index with realtime folder watching
-- **Built-in player** with queue and seeking that stays smooth while downloads run
+- **Built-in player** with instant starts and seamless track transitions — the next song is preloaded before the current one ends
+- **Get Info on any track** — file location, size, codec/sample rate/bitrate, dates, play count, and the full raw tag dump; **Refresh metadata** re-reads tags from disk on demand
 - **Quality stamps everywhere** — codec, sample rate, and bitrate shown on album cards and track rows straight from the files
 - **Artist pages** with bio, popular tracks, discography, public playlists, and a **New releases** check that diffs an artist's full discography against your library
 - **Metadata editing** for tracks, albums, and artists, with automatic artist enrichment (art, bios, top tracks)
@@ -27,11 +28,11 @@ Built with Go + [Wails](https://wails.io) and React. Windows · macOS · Linux �
 
 ### ⬇️ Downloading
 - **Search anything** — artists, albums, tracks, playlists, even public profiles — and download it in FLAC (up to 24-bit hi-res where available)
-- **Multiple sources** with automatic fallback, plus a direct Qobuz catalog search for music that's no longer on streaming
+- **What you see is what you get** — downloads come from the exact source shown on the quality badge, or pin a source with the inline dropdown; a direct Qobuz catalog browse covers music that's no longer on streaming
 - **Artists who left Spotify still work** — when Spotify's listing is sparse (or missing entirely), browse the artist's complete discography from Qobuz's catalog and download all of it
 - **Library-aware** — existing files are detected and skipped; everything lands in your `Artist/[Year] Album/NN - Title` structure no matter where the download started
 - **Real queue** — persistent across restarts, pause/resume, retry failed, multi-select removal, animated per-track progress, and add-while-downloading
-- **Server-break aware** — when a source takes a scheduled break, the queue waits it out and resumes by itself instead of failing
+- **Server-break aware** — per-source break clocks; the queue resumes the moment the first source comes back instead of waiting out the longest break
 - **Lyrics on autopilot** — synced `.lrc` files saved next to every download (toggleable)
 - **Cover art, M3U8 export, and download reports** included
 
@@ -81,7 +82,8 @@ First launch: add your music folder under **Library → Manage folders**. Kazoo 
 builds the index, and keeps watching for changes. Your first library folder doubles as the
 download destination, so downloads become part of the library the moment they finish.
 
-App data (library DB, playlists, artist art, config) lives in `~/.kazoo`.
+App data (library DB, playlists, artist art, config) lives in `~/.spindle` — a holdover
+from Kazoo's previous name, kept so upgrades never orphan your library.
 
 > **Linux** needs `webkit2gtk-4.1` (`sudo apt install libwebkit2gtk-4.1-0` on Ubuntu/Debian).
 

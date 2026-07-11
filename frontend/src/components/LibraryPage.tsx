@@ -1317,6 +1317,10 @@ function ArtistView({ releases, name, bust, onOpenAlbum, onAllSongs, onArtist, o
     const appearsOn = releases.appearsOn || [];
     return (
         <div>
+            {/* Wide windows: hero on the left, Popular fills the empty right
+                side; below 1600px everything stacks back vertically. */}
+            <div className="flex flex-col min-[1600px]:flex-row min-[1600px]:items-start min-[1600px]:gap-10">
+            <div className="min-w-0 min-[1600px]:w-full min-[1600px]:max-w-[1080px] min-[1600px]:shrink-0">
             {banner ? (
                 // Sized to the image's own aspect ratio (capped) so the full
                 // banner picture is visible instead of a fixed-height crop.
@@ -1443,10 +1447,11 @@ function ArtistView({ releases, name, bust, onOpenAlbum, onAllSongs, onArtist, o
                     })()}
                 </DialogContent>
             </Dialog>
+            </div>
             {topTracks.length > 0 && (
-                <div className="mb-7">
+                <div className="mb-7 min-w-0 min-[1600px]:flex-1">
                     <div className="text-xl font-bold mb-3">Popular</div>
-                    <div className="max-w-2xl">
+                    <div className="max-w-2xl min-[1600px]:max-w-none">
                         {topTracks.map((t) => (
                             <ContextMenu key={t.rank}>
                               <ContextMenuTrigger asChild>
@@ -1522,6 +1527,7 @@ function ArtistView({ releases, name, bust, onOpenAlbum, onAllSongs, onArtist, o
                     </div>
                 </div>
             )}
+            </div>
             {spotifyPlaylists.length > 0 && (
                 <div className="mb-7">
                     <div className="text-xl font-bold mb-3">On Spotify</div>
