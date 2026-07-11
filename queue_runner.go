@@ -484,7 +484,28 @@ func (a *App) processQueueItem(item backend.DownloadItem) {
 	// or when there's no badge to honor (probe found nothing) — then the
 	// configured source order decides.
 	if item.SpotifyID != "" {
-		if q, err := backend.GetBestTrackQuality(item.SpotifyID); err == nil && q.Found && q.Source != "" {
+		// Time-boxed: a slow Spotify/Qobuz probe must not pin the item in
+		// "preparing" — past the deadline the source-order walk takes over.
+		// (Usually instant: the download page's badge probe warmed the cache.)
+		type probeResult struct {
+			q   backend.TrackQuality
+			err error
+		}
+		probeCh := make(chan probeResult, 1)
+		go func() {
+			q, err := backend.GetBestTrackQuality(item.SpotifyID)
+			probeCh <- probeResult{q, err}
+		}()
+		var probe probeResult
+		probed := false
+		select {
+		case probe = <-probeCh:
+			probed = true
+		case <-time.After(12 * time.Second):
+			backend.Dbgln("badge-source probe timed out, using source order")
+		}
+		if probed && probe.err == nil && probe.q.Found && probe.q.Source != "" {
+			q := probe.q
 			svc := strings.ToLower(q.Source)
 			serviceURL := ""
 			if svc == "tidal" || svc == "amazon" {

@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 )
 
 type TrackQuality struct {
@@ -41,7 +42,39 @@ func qualityLabel(bit int, sr float64) string {
 	}
 }
 
+// Probe results are cached: the download page probes every visible track to
+// render its badge, and the queue re-probes the same track minutes later to
+// pick the download source — one lookup should serve both. Misses re-check
+// sooner in case a source was only momentarily unavailable.
+type qualityCacheEntry struct {
+	q  TrackQuality
+	at time.Time
+}
+
+var qualityCache sync.Map // spotify id -> qualityCacheEntry
+
 func bestQualityFor(spotifyID, isrc string) TrackQuality {
+	key := strings.TrimSpace(spotifyID)
+	if key != "" {
+		if v, ok := qualityCache.Load(key); ok {
+			e := v.(qualityCacheEntry)
+			ttl := 30 * time.Minute
+			if !e.q.Found {
+				ttl = 5 * time.Minute
+			}
+			if time.Since(e.at) < ttl {
+				return e.q
+			}
+		}
+	}
+	out := bestQualityForUncached(spotifyID, isrc)
+	if key != "" {
+		qualityCache.Store(key, qualityCacheEntry{q: out, at: time.Now()})
+	}
+	return out
+}
+
+func bestQualityForUncached(spotifyID, isrc string) TrackQuality {
 	var out TrackQuality
 	isrc = strings.TrimSpace(isrc)
 	if isrc == "" && strings.TrimSpace(spotifyID) != "" {

@@ -979,11 +979,13 @@ func (a *App) SearchSpotifyByType(req SpotifySearchByTypeRequest) ([]backend.Sea
 
 func (a *App) DownloadTrack(req DownloadRequest) (DownloadResponse, error) {
 
-	if req.Service == "qobuz" && req.SpotifyID == "" {
+	// Qobuz needs either a Spotify ID (to resolve an ISRC) or a direct ISRC —
+	// catalog-browsed items carry a "qobuz_<id>" pseudo-ISRC and no Spotify ID.
+	if req.Service == "qobuz" && req.SpotifyID == "" && strings.TrimSpace(req.ISRC) == "" {
 		return DownloadResponse{
 			Success: false,
-			Error:   "Spotify ID is required for Qobuz",
-		}, fmt.Errorf("spotify ID is required for Qobuz")
+			Error:   "Spotify ID or ISRC is required for Qobuz",
+		}, fmt.Errorf("spotify ID or ISRC is required for Qobuz")
 	}
 
 	if req.Service == "" {
