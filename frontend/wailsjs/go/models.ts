@@ -98,6 +98,7 @@ export namespace backend {
 	    cover: string;
 	    url: string;
 	    totalTracks: number;
+	    haveTracks: number;
 	    inLibrary: boolean;
 	
 	    static createFrom(source: any = {}) {
@@ -113,6 +114,7 @@ export namespace backend {
 	        this.cover = source["cover"];
 	        this.url = source["url"];
 	        this.totalTracks = source["totalTracks"];
+	        this.haveTracks = source["haveTracks"];
 	        this.inLibrary = source["inLibrary"];
 	    }
 	}
@@ -127,6 +129,7 @@ export namespace backend {
 	    codec: string;
 	    sampleRate: number;
 	    bitrate: number;
+	    totalTracks: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new LibraryAlbum(source);
@@ -144,6 +147,7 @@ export namespace backend {
 	        this.codec = source["codec"];
 	        this.sampleRate = source["sampleRate"];
 	        this.bitrate = source["bitrate"];
+	        this.totalTracks = source["totalTracks"];
 	    }
 	}
 	export class ArtistReleases {

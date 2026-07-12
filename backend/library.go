@@ -132,7 +132,8 @@ func InitLibraryDB() error {
 		codec TEXT, size INTEGER DEFAULT 0,
 		rating INTEGER DEFAULT 0, play_count INTEGER DEFAULT 0,
 		date_added INTEGER DEFAULT 0, last_played INTEGER DEFAULT 0, mtime INTEGER DEFAULT 0,
-		isrc TEXT DEFAULT ''
+		isrc TEXT DEFAULT '',
+		total_tracks INTEGER DEFAULT 0
 	);
 	CREATE TABLE IF NOT EXISTS album_refs (
 		album_id TEXT NOT NULL,
@@ -231,6 +232,7 @@ func InitLibraryDB() error {
 		"ALTER TABLE tracks ADD COLUMN isrc TEXT DEFAULT ''",
 		// Index depends on the migrated column, so it must come after.
 		"CREATE INDEX IF NOT EXISTS idx_isrc ON tracks(isrc)",
+		"ALTER TABLE tracks ADD COLUMN total_tracks INTEGER DEFAULT 0",
 		"ALTER TABLE synced_playlists ADD COLUMN synced INTEGER DEFAULT 1",
 	} {
 		db.Exec(m)
@@ -722,6 +724,18 @@ const (
 	fileUpdated
 )
 
+// parseTrackTotal reads the release's official track count from tags:
+// TRACKTOTAL (Vorbis/FLAC) or the "n/N" TRACKNUMBER form (ID3/MP4).
+func parseTrackTotal(tags map[string][]string) int {
+	if n := parseIntPrefix(tagFirst(tags, "TRACKTOTAL")); n > 0 {
+		return n
+	}
+	if tn := tagFirst(tags, taglib.TrackNumber); strings.Contains(tn, "/") {
+		return parseIntPrefix(strings.SplitN(tn, "/", 2)[1])
+	}
+	return 0
+}
+
 // upsertTrackFile scans one audio file into the tracks table.
 func upsertTrackFile(stmt *sql.Stmt, p string, now int64, force bool) int {
 	np := norm.NFC.String(p)
@@ -764,7 +778,8 @@ func upsertTrackFile(stmt *sql.Stmt, p string, now int64, force bool) int {
 		parseIntPrefix(tagFirst(tags, taglib.DiscNumber)),
 		int(props.Length.Seconds()), int(props.Bitrate), int(props.SampleRate),
 		codec, st.Size(), releaseBucket(tags),
-		strings.ToUpper(strings.TrimSpace(tagFirst(tags, taglib.ISRC))), now, mtime); err != nil {
+		strings.ToUpper(strings.TrimSpace(tagFirst(tags, taglib.ISRC))),
+		parseTrackTotal(tags), now, mtime); err != nil {
 		return fileError
 	}
 	var tid int64
@@ -806,14 +821,15 @@ func ImportDownloadedFile(root, path string) {
 }
 
 const trackUpsertSQL = `INSERT INTO tracks
-	(path,title,artist,album_artist,album,album_id,genre,year,track_no,disc_no,duration,bitrate,sample_rate,codec,size,release_type,isrc,date_added,mtime)
-	VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+	(path,title,artist,album_artist,album,album_id,genre,year,track_no,disc_no,duration,bitrate,sample_rate,codec,size,release_type,isrc,total_tracks,date_added,mtime)
+	VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 	ON CONFLICT(path) DO UPDATE SET
 	  title=excluded.title, artist=excluded.artist, album_artist=excluded.album_artist,
 	  album=excluded.album, album_id=excluded.album_id, genre=excluded.genre, year=excluded.year,
 	  track_no=excluded.track_no, disc_no=excluded.disc_no, duration=excluded.duration,
 	  bitrate=excluded.bitrate, sample_rate=excluded.sample_rate, codec=excluded.codec,
-	  size=excluded.size, release_type=excluded.release_type, isrc=excluded.isrc, mtime=excluded.mtime`
+	  size=excluded.size, release_type=excluded.release_type, isrc=excluded.isrc,
+	  total_tracks=excluded.total_tracks, mtime=excluded.mtime`
 
 const trackCols = `id,path,title,artist,album_artist,album,album_id,genre,year,track_no,disc_no,
 	duration,bitrate,sample_rate,codec,size,rating,play_count,date_added,isrc`
@@ -995,6 +1011,9 @@ type LibraryAlbum struct {
 	Codec      string `json:"codec"`
 	SampleRate int    `json:"sampleRate"`
 	Bitrate    int    `json:"bitrate"`
+	// TotalTracks: the release's official track count (from TRACKTOTAL / the
+	// "n/N" TRACKNUMBER form). TrackCount < TotalTracks = incomplete album.
+	TotalTracks int `json:"totalTracks"`
 }
 
 type ArtistReleases struct {
@@ -1034,14 +1053,14 @@ type LibraryArtist struct {
 	CoverPath  string `json:"coverPath"`
 }
 
-const albumCols = `album_id, album, album_artist, MAX(year), COUNT(*), MIN(path), MAX(release_type), MIN(codec), MAX(codec), MAX(sample_rate), MAX(bitrate)`
+const albumCols = `album_id, album, album_artist, MAX(year), COUNT(*), MIN(path), MAX(release_type), MIN(codec), MAX(codec), MAX(sample_rate), MAX(bitrate), MAX(total_tracks)`
 
 func scanAlbums(rows *sql.Rows) ([]LibraryAlbum, error) {
 	out := []LibraryAlbum{}
 	for rows.Next() {
 		var a LibraryAlbum
 		var rt, c1, c2 sql.NullString
-		if err := rows.Scan(&a.ID, &a.Title, &a.AlbumArtist, &a.Year, &a.TrackCount, &a.CoverPath, &rt, &c1, &c2, &a.SampleRate, &a.Bitrate); err != nil {
+		if err := rows.Scan(&a.ID, &a.Title, &a.AlbumArtist, &a.Year, &a.TrackCount, &a.CoverPath, &rt, &c1, &c2, &a.SampleRate, &a.Bitrate, &a.TotalTracks); err != nil {
 			return nil, err
 		}
 		a.ReleaseType = rt.String
@@ -1402,7 +1421,7 @@ type LibraryFolder struct {
 // roleSchemaVersion bumps whenever artist-role derivation changes (e.g. the
 // first-artist-is-primary rule). A mismatch forces one full tag re-read so
 // existing rows pick up the new rules; unchanged files are skipped otherwise.
-const roleSchemaVersion = 5
+const roleSchemaVersion = 6
 
 func RescanAllFolders(onProgress func(done, total int, current string)) (ScanResult, error) {
 	var agg ScanResult

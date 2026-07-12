@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, FolderOpen, CheckCircle, XCircle, FileText, FileCheck, Globe, ImageDown, Play, Pause } from "lucide-react";
+import { ArrowLeft, Download, FolderOpen, CheckCircle, XCircle, FileText, FileCheck, Globe, ImageDown, Play, Pause } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger, } from "@/components/ui/tooltip";
 import type { TrackMetadata, TrackAvailability } from "@/types/api";
@@ -60,12 +60,13 @@ export function TrackInfo({ track, downloadingTrack, isDownloaded, isFailed, isS
             return plays;
         return num.toLocaleString();
     };
-    return (<Card className="relative">
-    {onBack && (<div className="absolute top-4 right-4 z-10">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-            <XCircle className="h-5 w-5"/>
+    return (<div className="space-y-6">
+    {onBack && (<div>
+        <Button variant="ghost" size="sm" className="-ml-2 text-muted-foreground hover:text-foreground" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-1"/> Back
         </Button>
     </div>)}
+      <Card className="relative">
     <CardContent className="px-6">
       <div className="flex gap-6 items-start">
         <div className="shrink-0">
@@ -188,5 +189,5 @@ export function TrackInfo({ track, downloadingTrack, isDownloaded, isFailed, isS
         </div>
       </div>
     </CardContent>
-  </Card>);
+  </Card></div>);
 }

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, FolderOpen, ImageDown, FileText, XCircle, ListMusic } from "lucide-react";
+import { Download, FolderOpen, ImageDown, FileText, ArrowLeft, ListMusic } from "lucide-react";
 import { SyncSpotifyPlaylist } from "../../wailsjs/go/main/App";
 import { openSpotifyPlaylistView } from "@/components/PlaylistSyncPage";
 import { Spinner } from "@/components/ui/spinner";
@@ -171,12 +171,12 @@ export function PlaylistInfo({ playlistInfo, trackList, playlistUrl, searchQuery
         }
     };
     return (<div className="space-y-6">
+      {onBack && (<div>
+        <Button variant="ghost" size="sm" className="-ml-2 text-muted-foreground hover:text-foreground" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-1"/> Back
+        </Button>
+    </div>)}
       <Card className="relative">
-      {onBack && (<div className="absolute top-4 right-4 z-10">
-          <Button variant="ghost" size="icon" onClick={onBack}>
-              <XCircle className="h-5 w-5"/>
-          </Button>
-      </div>)}
         <CardContent className="px-6">
           <div className="flex gap-6 items-start">
             {playlistInfo.cover && (<div className="relative group shrink-0 w-48 h-48">

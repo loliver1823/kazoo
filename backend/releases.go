@@ -19,7 +19,11 @@ type ArtistReleaseCheck struct {
 	Cover       string `json:"cover"`
 	URL         string `json:"url"`
 	TotalTracks int    `json:"totalTracks"`
-	InLibrary   bool   `json:"inLibrary"`
+	// HaveTracks: how many of this release's tracks the library already has
+	// (by album-title match). InLibrary means complete; 0 < HaveTracks <
+	// TotalTracks marks the release incomplete.
+	HaveTracks int  `json:"haveTracks"`
+	InLibrary  bool `json:"inLibrary"`
 }
 
 // GetArtistNewReleases fetches the artist's Spotify discography and marks
@@ -57,18 +61,21 @@ func GetArtistNewReleases(name string) ([]ArtistReleaseCheck, error) {
 		return out, fmt.Errorf("unexpected discography response")
 	}
 
-	// Album title keys the library already has for this artist.
-	have := map[string]bool{}
+	// Owned-track counts per album title key. A release counts as complete
+	// only when the library has at least its full track count — a single
+	// downloaded song no longer hides the whole album from "missing".
+	have := map[string]int{}
 	if libDB != nil {
 		rows, qerr := libDB.Query(
-			"SELECT DISTINCT t.album FROM tracks t LEFT JOIN track_artists ta ON ta.track_id = t.id WHERE ta.name = ? OR t.album_artist = ?",
+			"SELECT t.album, COUNT(DISTINCT t.id) FROM tracks t LEFT JOIN track_artists ta ON ta.track_id = t.id WHERE ta.name = ? OR t.album_artist = ? GROUP BY t.album",
 			trimmed, trimmed)
 		if qerr == nil {
 			for rows.Next() {
 				var a string
-				if rows.Scan(&a) == nil {
+				var n int
+				if rows.Scan(&a, &n) == nil {
 					if k := titleBaseKey(a); k != "" {
-						have[k] = true
+						have[k] += n
 					}
 				}
 			}
@@ -86,10 +93,12 @@ func GetArtistNewReleases(name string) ([]ArtistReleaseCheck, error) {
 		if url == "" {
 			url = "https://open.spotify.com/album/" + a.ID
 		}
+		haveN := have[titleBaseKey(a.Name)]
+		complete := haveN > 0 && (a.TotalTracks == 0 || haveN >= a.TotalTracks)
 		out = append(out, ArtistReleaseCheck{
 			ID: a.ID, Name: a.Name, Type: a.AlbumType, ReleaseDate: a.ReleaseDate,
 			Cover: a.Images, URL: url, TotalTracks: a.TotalTracks,
-			InLibrary: have[titleBaseKey(a.Name)],
+			HaveTracks: haveN, InLibrary: complete,
 		})
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].ReleaseDate > out[j].ReleaseDate })

@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { FolderPlus, Search, Play, Music, ArrowLeft, Clock, ChevronRight, FolderCog, Trash2, Folder, RefreshCw, Pencil, ListPlus, ListEnd, User, Disc3, Info, Plus, ListMusic, X, Check, Link2, Sparkles, Download } from "lucide-react";
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubTrigger, ContextMenuSubContent } from "@/components/ui/context-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     ScanLibraryFolder, RescanLibrary, GetLibraryAlbums, GetAlbumTracks, GetArtistReleases, GetLibraryArtistsList,
     GetLibraryAlbumArtists, GetEmbeddedCover, GetLibraryTracks, GetLibraryStats, GetLibraryFolders, RemoveLibraryFolder,
@@ -973,6 +974,11 @@ export function LibraryPage() {
                                         {route.album.albumArtist}
                                     </button>
                                     {route.album.year ? ` · ${route.album.year}` : ""} · {plural(albumTracks.length, "song")}
+                                    {(route.album as any).totalTracks > albumTracks.length && (
+                                        <span className="ml-2 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium leading-none bg-amber-500/15 text-amber-500" title={`This release has ${(route.album as any).totalTracks} tracks; you have ${albumTracks.length}.`}>
+                                            Incomplete · {albumTracks.length}/{(route.album as any).totalTracks}
+                                        </span>
+                                    )}
                                 </div>
                                 <Button variant="secondary" size="sm" className="mt-3" onClick={() => editAlbumMeta(route.album)}>
                                     <Pencil className="h-4 w-4 mr-1.5" /> Edit album
@@ -1201,7 +1207,7 @@ function ArtistView({ releases, name, bust, onOpenAlbum, onAllSongs, onArtist, o
     const [topTracks, setTopTracks] = useState<backend.ArtistTopTrack[]>([]);
     const [spotifyPlaylists, setSpotifyPlaylists] = useState<backend.ProfilePlaylist[]>([]);
     const [enriching, setEnriching] = useState(false);
-    const { handleDownloadTrack, downloadingTrack } = useDownload();
+    const { handleDownloadTrack, handleDownloadAll, downloadingTrack } = useDownload();
     const downloadPopular = (t: backend.ArtistTopTrack) => {
         // Clicking while something downloads enqueues it (shared chain).
         // t.artist carries the FULL credited artists ("Lana Del Rey, Bleachers")
@@ -1215,10 +1221,31 @@ function ArtistView({ releases, name, bust, onOpenAlbum, onAllSongs, onArtist, o
     const [newRel, setNewRel] = useState<backend.ArtistReleaseCheck[] | null>(null);
     const [newRelLoading, setNewRelLoading] = useState(false);
     const [newRelFilter, setNewRelFilter] = useState("all");
+    const [selRel, setSelRel] = useState<Set<string>>(new Set());
+    const [dlRel, setDlRel] = useState<Set<string>>(new Set());
+    // Fetches a release's tracks in the background and enqueues them all —
+    // no page switch. Already-owned recordings skip via ISRC dedup.
+    const downloadRelease = async (r: backend.ArtistReleaseCheck) => {
+        if (dlRel.has(r.id)) return;
+        setDlRel((prev) => new Set(prev).add(r.id));
+        try {
+            const meta = await fetchSpotifyMetadata(r.url, false, 0, 300);
+            const list = ("track_list" in meta ? (meta as any).track_list : []) as any[];
+            if (!list.length) { toast.error(`No tracks found for ${r.name}`); return; }
+            await handleDownloadAll(list, r.name);
+        } catch (e) { toast.error(`${e}`); }
+        finally {
+            setDlRel((prev) => { const n = new Set(prev); n.delete(r.id); return n; });
+        }
+    };
+    const downloadReleaseList = async (rels: backend.ArtistReleaseCheck[]) => {
+        for (const r of rels) await downloadRelease(r);
+    };
     const openNewReleases = async () => {
         setNewRelOpen(true);
         setNewRelLoading(true);
         setNewRelFilter("all");
+        setSelRel(new Set());
         setNewRel(null);
         try { setNewRel(await GetArtistNewReleases(name) || []); }
         catch (e) { toast.error(`${e}`); setNewRelOpen(false); }
@@ -1436,21 +1463,54 @@ function ArtistView({ releases, name, bust, onOpenAlbum, onAllSongs, onArtist, o
                                     <div key={r.id} onClick={() => openRelease(r)}
                                         className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent group cursor-pointer"
                                         title="Open this release on the Download page">
+                                        <span onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
+                                            <Checkbox checked={selRel.has(r.id)} onCheckedChange={(c) => setSelRel((prev) => {
+                                                const n = new Set(prev);
+                                                if (c === true) n.add(r.id); else n.delete(r.id);
+                                                return n;
+                                            })} />
+                                        </span>
                                         {r.cover
                                             ? <img src={r.cover} alt="" loading="lazy" className="h-11 w-11 rounded object-cover shrink-0" />
                                             : <div className="h-11 w-11 rounded bg-muted shrink-0" />}
                                         <div className="min-w-0 flex-1">
-                                            <div className="text-sm truncate">{r.name}</div>
+                                            <div className="text-sm truncate">{r.name}
+                                                {(r as any).haveTracks > 0 && (
+                                                    <span className="ml-2 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium leading-none bg-amber-500/15 text-amber-500">
+                                                        Incomplete · {(r as any).haveTracks}/{r.totalTracks}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="text-xs text-muted-foreground">
                                                 {(r.releaseDate || "").slice(0, 4)}
                                                 {r.type ? ` · ${r.type.charAt(0).toUpperCase()}${r.type.slice(1)}` : ""}
                                                 {r.totalTracks > 0 ? ` · ${plural(r.totalTracks, "track")}` : ""}
                                             </div>
                                         </div>
+                                        {dlRel.has(r.id)
+                                            ? <Spinner className="h-4 w-4 shrink-0" />
+                                            : (<button type="button" title="Download this release"
+                                                className="shrink-0 text-primary opacity-0 group-hover:opacity-100 transition cursor-pointer hover:scale-110"
+                                                onClick={(e) => { e.stopPropagation(); void downloadRelease(r); }}>
+                                                <Download className="h-4 w-4" />
+                                            </button>)}
                                         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
                                     </div>
                                 ))}
                             </div>
+                            {missingRel.length > 0 && (
+                                <div className="flex items-center gap-2 pt-1">
+                                    <Button size="sm" onClick={() => void downloadReleaseList(shown)} disabled={dlRel.size > 0}>
+                                        <Download className="h-4 w-4 mr-1.5" /> Download all ({shown.length.toLocaleString()})
+                                    </Button>
+                                    {selRel.size > 0 && (
+                                        <Button size="sm" variant="secondary" disabled={dlRel.size > 0}
+                                            onClick={() => void downloadReleaseList(shown.filter((r) => selRel.has(r.id)))}>
+                                            Download selected ({selRel.size.toLocaleString()})
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </>);
                     })()}
                 </DialogContent>

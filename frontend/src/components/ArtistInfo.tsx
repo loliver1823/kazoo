@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, FolderOpen, ImageDown, FileText, BadgeCheck, XCircle, Filter, CloudDownload, CheckCheck } from "lucide-react";
+import { Download, FolderOpen, ImageDown, FileText, BadgeCheck, ArrowLeft, Filter, CloudDownload, CheckCheck } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SearchAndSort } from "./SearchAndSort";
@@ -346,16 +346,16 @@ export function ArtistInfo({ artistInfo, albumList, trackList, onBrowseQobuz, se
     };
     const hasGallery = artistInfo.gallery && artistInfo.gallery.length > 0;
     return (<div className="space-y-6">
+      {onBack && (<div>
+        <Button variant="ghost" size="sm" className="-ml-2 text-muted-foreground hover:text-foreground" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-1"/> Back
+        </Button>
+    </div>)}
       <Card className="overflow-hidden p-0 relative">
         {artistInfo.header ? (<>
             <div className="relative w-full h-64 bg-cover bg-center">
               <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${artistInfo.header})` }}/>
               <div className="absolute inset-0 bg-linear-to-t from-black via-black/50 to-transparent"/>
-              {onBack && (<div className="absolute top-4 right-4 z-10">
-                  <Button variant="ghost" size="icon" onClick={onBack} className="text-white hover:bg-white/20 hover:text-white">
-                      <XCircle className="h-5 w-5"/>
-                  </Button>
-              </div>)}
               <div className="absolute bottom-4 right-4 z-10">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -417,11 +417,6 @@ export function ArtistInfo({ artistInfo, albumList, trackList, onBrowseQobuz, se
               </div>
             </div>
           </>) : (<CardContent className="px-6 py-6">
-            {onBack && (<div className="absolute top-4 right-4 z-10">
-                <Button variant="ghost" size="icon" onClick={onBack}>
-                    <XCircle className="h-5 w-5"/>
-                </Button>
-            </div>)}
             <div className="flex gap-6 items-start">
               {artistInfo.images && (<div className="relative group">
                   <img src={artistInfo.images} alt={artistInfo.name} className="w-48 h-48 rounded-full shadow-lg object-cover border-4 border-white"/>
