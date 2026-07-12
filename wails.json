@@ -12,7 +12,7 @@
   },
   "info": {
     "productName": "Kazoo Music Manager",
-    "productVersion": "1.2.8",
+    "productVersion": "1.2.9",
     "copyright": "© 2026 loliver1823"
   },
   "wailsjsdir": "./frontend",
