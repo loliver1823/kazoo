@@ -101,6 +101,87 @@ func GetArtistNewReleases(name string) ([]ArtistReleaseCheck, error) {
 			HaveTracks: haveN, InLibrary: complete,
 		})
 	}
+	// Releases the artist only appears on (soundtracks, compilations, other
+	// artists' albums) — the Spotify artist page's "Appears On" shelf.
+	for _, a := range fetchArtistAppearsOn(spid) {
+		if seen[a.ID] {
+			continue
+		}
+		seen[a.ID] = true
+		haveN := have[titleBaseKey(a.Name)]
+		a.HaveTracks = haveN
+		a.InLibrary = haveN > 0
+		out = append(out, a)
+	}
+
 	sort.SliceStable(out, func(i, j int) bool { return out[i].ReleaseDate > out[j].ReleaseDate })
 	return out, nil
+}
+
+// fetchArtistAppearsOn parses the "Appears On" shelf out of the artist
+// overview call. Best-effort: an empty result just hides the section.
+func fetchArtistAppearsOn(artistID string) []ArtistReleaseCheck {
+	out := []ArtistReleaseCheck{}
+	client := NewSpotifyClient()
+	if err := client.Initialize(); err != nil {
+		return out
+	}
+	payload := map[string]interface{}{
+		"variables":     map[string]interface{}{"uri": "spotify:artist:" + artistID, "locale": ""},
+		"operationName": "queryArtistOverview",
+		"extensions": map[string]interface{}{
+			"persistedQuery": map[string]interface{}{"version": 1, "sha256Hash": artistOverviewQueryHash},
+		},
+	}
+	data, err := client.Query(payload)
+	if err != nil {
+		return out
+	}
+	items := getSlice(getMap(getMap(getMap(getMap(data, "data"), "artistUnion"), "relatedContent"), "appearsOn"), "items")
+	for _, it := range items {
+		m, ok := it.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		rels := getSlice(getMap(m, "releases"), "items")
+		if len(rels) == 0 {
+			continue
+		}
+		r, ok := rels[0].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		id, name := getString(r, "id"), getString(r, "name")
+		if id == "" || name == "" {
+			continue
+		}
+		year := 0
+		if d := getMap(r, "date"); d != nil {
+			if y, ok := d["year"].(float64); ok {
+				year = int(y)
+			}
+		}
+		cover := ""
+		if ca := getMap(r, "coverArt"); ca != nil {
+			for _, src := range getSlice(ca, "sources") {
+				if sm, ok := src.(map[string]interface{}); ok {
+					if h, ok := sm["height"].(float64); ok && int(h) == 300 {
+						cover = getString(sm, "url")
+					}
+					if cover == "" {
+						cover = getString(sm, "url")
+					}
+				}
+			}
+		}
+		date := ""
+		if year > 0 {
+			date = fmt.Sprintf("%d", year)
+		}
+		out = append(out, ArtistReleaseCheck{
+			ID: id, Name: name, Type: "appears_on", ReleaseDate: date,
+			Cover: cover, URL: "https://open.spotify.com/album/" + id,
+		})
+	}
+	return out
 }

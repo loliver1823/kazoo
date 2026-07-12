@@ -866,7 +866,7 @@ func (c *SpotifyMetadataClient) fetchArtistDiscography(ctx context.Context, pars
 		"extensions": map[string]interface{}{
 			"persistedQuery": map[string]interface{}{
 				"version":    1,
-				"sha256Hash": "446130b4a0aa6522a686aafccddb0ae849165b5e0436fd802f96e0243617b5d8",
+				"sha256Hash": artistOverviewQueryHash,
 			},
 		},
 	}

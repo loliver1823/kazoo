@@ -187,6 +187,10 @@ func autoMatchSpotifyArtist(name string) string {
 	return ""
 }
 
+// artistOverviewQueryHash is Spotify's persisted-query hash for
+// queryArtistOverview — shared so no caller ever retypes it.
+const artistOverviewQueryHash = "446130b4a0aa6522a686aafccddb0ae849165b5e0436fd802f96e0243617b5d8"
+
 // fetchArtistOverview does the single queryArtistOverview GraphQL call and
 // returns the filtered artist payload plus its top tracks (which FilterArtist
 // doesn't carry).
@@ -204,7 +208,7 @@ func fetchArtistOverview(artistID string) (*apiArtistResponse, []ArtistTopTrack,
 		"extensions": map[string]interface{}{
 			"persistedQuery": map[string]interface{}{
 				"version":    1,
-				"sha256Hash": "446130b4a0aa6522a686aafccddb0ae849165b5e0436fd802f96e0243617b5d8",
+				"sha256Hash": artistOverviewQueryHash,
 			},
 		},
 	}

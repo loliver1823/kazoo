@@ -1433,7 +1433,7 @@ function ArtistView({ releases, name, bust, onOpenAlbum, onAllSongs, onArtist, o
                         const missingRel = newRel.filter((r) => !r.inLibrary);
                         const types = [...new Set(missingRel.map((r) => (r.type || "other").toLowerCase()))];
                         const shown = newRelFilter === "all" ? missingRel : missingRel.filter((r) => (r.type || "other").toLowerCase() === newRelFilter);
-                        const chipLabel = (t: string) => t === "ep" ? "EPs" : `${t.charAt(0).toUpperCase()}${t.slice(1)}s`;
+                        const chipLabel = (t: string) => t === "ep" ? "EPs" : t === "appears_on" ? "Appears on" : `${t.charAt(0).toUpperCase()}${t.slice(1)}s`;
                         const openRelease = (r: backend.ArtistReleaseCheck) => {
                             setNewRelOpen(false);
                             window.dispatchEvent(new CustomEvent("kazoo:fetch-url", { detail: r.url }));
