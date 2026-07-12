@@ -17,7 +17,7 @@ import {
     GetArtistArtCandidates, GetAlbumArtCandidates, GetArtistSpotifyPlaylists,
     WriteBulkTrackMetadata, TrackIDsForAlbums, TrackIDsForArtists, GetImageInfo, EmbedCoverFromSource, SelectFile, GetPlaylists,
     GetPlaylistTracks, CreatePlaylist, RenamePlaylist, DeletePlaylist, AddTracksToPlaylist, RemoveTrackFromPlaylist, SelectFolder,
-    FindLibraryAlbum, GetArtistNewReleases, DeleteLibraryTracks, GetTrackDetails, RefreshTrackMetadata, OpenFolder,
+    FindLibraryAlbum, GetArtistNewReleases, DeleteLibraryTracks, GetTrackDetails, RefreshTrackMetadata, OpenFolder, DeleteAlbumRefs,
     ListSyncedPlaylists, RemoveSyncedPlaylist, SyncSpotifyPlaylist,
 } from "../../wailsjs/go/main/App";
 import { openSpotifyPlaylistView } from "@/components/PlaylistSyncPage";
@@ -385,7 +385,7 @@ export function LibraryPage() {
 
     // Delete = remove from library AND delete files from disk (with the
     // watcher auto-scanning, "remove from library only" would just re-add).
-    const [confirmDelete, setConfirmDelete] = useState<{ ids: number[]; label: string } | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<{ ids: number[]; label: string; albumId?: string } | null>(null);
     const [infoTrackId, setInfoTrackId] = useState<number | null>(null);
     const [deleting, setDeleting] = useState(false);
     const openDeleteSelection = async () => {
@@ -432,8 +432,15 @@ export function LibraryPage() {
     const deleteAlbum = async (a: Album) => {
         try {
             const ids = await TrackIDsForAlbums([a.id]);
-            if (!ids.length) { toast.error("No tracks in album"); return; }
-            setConfirmDelete({ ids, label: `"${a.title}" (${ids.length} track${ids.length === 1 ? "" : "s"})` });
+            if (!ids.length) {
+                // Album made entirely of borrowed (linked) tracks — removing it
+                // only drops the links; the files belong to other albums.
+                await DeleteAlbumRefs(a.id);
+                toast.success("Removed album (linked tracks stay in their own albums)");
+                load(); loadStats();
+                return;
+            }
+            setConfirmDelete({ ids, label: `"${a.title}" (${ids.length} track${ids.length === 1 ? "" : "s"})`, albumId: a.id });
         } catch (e) { toast.error(`${e}`); }
     };
     const doDelete = async () => {
@@ -441,6 +448,7 @@ export function LibraryPage() {
         setDeleting(true);
         try {
             const n = await DeleteLibraryTracks(confirmDelete.ids);
+            if (confirmDelete.albumId) await DeleteAlbumRefs(confirmDelete.albumId).catch(() => { });
             toast.success(`Deleted ${n} track${n === 1 ? "" : "s"} from library and disk`);
             setConfirmDelete(null);
             clearSel();
@@ -1615,6 +1623,7 @@ function SongList({ tracks, numbered, onAction, onPlay, playlists, playlistId, s
                         <div className="flex items-center gap-1.5 min-w-0">
                             <span className="truncate font-medium">{t.title}<span className="text-muted-foreground">{featuring(t)}</span></span>
                             <QualityStamp codec={t.codec} sampleRate={t.sampleRate} bitrate={t.bitrate} className="shrink-0" />
+                            {(t as any).borrowed && <span className="shrink-0 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium leading-none bg-primary/10 text-primary" title={`File lives on "${t.album}"`}>Linked</span>}
                         </div>
                         <div className="truncate text-xs text-muted-foreground">{t.artist}</div>
                     </div>

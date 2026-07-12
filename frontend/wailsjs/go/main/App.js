@@ -94,6 +94,10 @@ export function DecodeAudioForAnalysis(arg1) {
   return window['go']['main']['App']['DecodeAudioForAnalysis'](arg1);
 }
 
+export function DeleteAlbumRefs(arg1) {
+  return window['go']['main']['App']['DeleteAlbumRefs'](arg1);
+}
+
 export function DeleteDownloadHistoryItem(arg1) {
   return window['go']['main']['App']['DeleteDownloadHistoryItem'](arg1);
 }

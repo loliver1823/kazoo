@@ -49,6 +49,7 @@ type DownloadItem struct {
 	Copyright   string `json:"copyright,omitempty"`
 	Publisher   string `json:"publisher,omitempty"`
 	ISRC        string `json:"isrc,omitempty"`
+	AlbumID     string `json:"album_id,omitempty"`
 	Category    string `json:"category,omitempty"`
 	UPC         string `json:"upc,omitempty"`
 	Position    int    `json:"position,omitempty"`
@@ -683,12 +684,19 @@ func FailDownloadItem(id, errorMsg string) {
 }
 
 func SkipDownloadItem(id, filePath string) {
+	SkipDownloadItemWithNote(id, filePath, "")
+}
+
+// SkipDownloadItemWithNote marks an item skipped with an explanation shown in
+// the queue (e.g. which album already carries the recording).
+func SkipDownloadItemWithNote(id, filePath, note string) {
 	downloadQueueLock.Lock()
 	for i := range downloadQueue {
 		if downloadQueue[i].ID == id {
 			downloadQueue[i].Status = StatusSkipped
 			downloadQueue[i].EndTime = time.Now().Unix()
 			downloadQueue[i].FilePath = filePath
+			downloadQueue[i].ErrorMessage = note
 			break
 		}
 	}

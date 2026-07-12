@@ -761,6 +761,11 @@ func (a *App) DeleteLibraryTracks(ids []int64) (int, error) {
 	return backend.DeleteLibraryTracks(ids)
 }
 
+// DeleteAlbumRefs removes an album's virtual (borrowed-track) memberships.
+func (a *App) DeleteAlbumRefs(albumID string) error {
+	return backend.DeleteAlbumRefs(albumID)
+}
+
 // RefreshTrackMetadata force re-reads tags from disk for the given tracks.
 func (a *App) RefreshTrackMetadata(ids []int64) (int, error) {
 	n, err := backend.RefreshTracks(ids)

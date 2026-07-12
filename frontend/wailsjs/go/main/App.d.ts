@@ -49,6 +49,8 @@ export function CreatePlaylist(arg1:string):Promise<number>;
 
 export function DecodeAudioForAnalysis(arg1:string):Promise<backend.AnalysisDecodeResponse>;
 
+export function DeleteAlbumRefs(arg1:string):Promise<void>;
+
 export function DeleteDownloadHistoryItem(arg1:string):Promise<void>;
 
 export function DeleteFetchHistoryItem(arg1:string):Promise<void>;

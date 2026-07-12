@@ -68,6 +68,7 @@ async function enqueue(meta: EnqueueMeta): Promise<string> {
         copyright: meta.copyright || "",
         publisher: meta.publisher || "",
         isrc: qobuzDirect ? meta.id : (meta.isrc || ""),
+        album_id: qobuzDirect ? "" : (meta.albumId || ""),
         category: meta.albumType ? getAlbumCategoryLabel(meta.albumType) : "",
         upc: meta.upc || "",
         position: meta.position || 0,

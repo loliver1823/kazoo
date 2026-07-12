@@ -61,6 +61,10 @@ type LibraryTrack struct {
 	Rating      int           `json:"rating"`
 	PlayCount   int           `json:"playCount"`
 	DateAdded   int64         `json:"dateAdded"`
+	ISRC        string        `json:"isrc"`
+	// Borrowed: this row belongs to another album's folder and is shown here
+	// via an album_refs link (cross-album recording dedup).
+	Borrowed bool `json:"borrowed,omitempty"`
 }
 
 type ScanResult struct {
@@ -127,7 +131,18 @@ func InitLibraryDB() error {
 		duration INTEGER DEFAULT 0, bitrate INTEGER DEFAULT 0, sample_rate INTEGER DEFAULT 0,
 		codec TEXT, size INTEGER DEFAULT 0,
 		rating INTEGER DEFAULT 0, play_count INTEGER DEFAULT 0,
-		date_added INTEGER DEFAULT 0, last_played INTEGER DEFAULT 0, mtime INTEGER DEFAULT 0
+		date_added INTEGER DEFAULT 0, last_played INTEGER DEFAULT 0, mtime INTEGER DEFAULT 0,
+		isrc TEXT DEFAULT ''
+	);
+	CREATE TABLE IF NOT EXISTS album_refs (
+		album_id TEXT NOT NULL,
+		album TEXT NOT NULL,
+		album_artist TEXT DEFAULT '',
+		year INTEGER DEFAULT 0,
+		track_no INTEGER DEFAULT 0,
+		disc_no INTEGER DEFAULT 0,
+		track_id INTEGER NOT NULL,
+		PRIMARY KEY(album_id, track_id)
 	);
 	CREATE TABLE IF NOT EXISTS track_artists (
 		track_id INTEGER NOT NULL,
@@ -195,7 +210,8 @@ func InitLibraryDB() error {
 	CREATE INDEX IF NOT EXISTS idx_genre ON tracks(genre);
 	CREATE INDEX IF NOT EXISTS idx_year ON tracks(year);
 	CREATE INDEX IF NOT EXISTS idx_ta_name ON track_artists(name);
-	CREATE INDEX IF NOT EXISTS idx_ta_track ON track_artists(track_id);`
+	CREATE INDEX IF NOT EXISTS idx_ta_track ON track_artists(track_id);
+	CREATE INDEX IF NOT EXISTS idx_ar_track ON album_refs(track_id);`
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
 		return err
@@ -212,6 +228,9 @@ func InitLibraryDB() error {
 		"ALTER TABLE artist_art ADD COLUMN checked_at INTEGER DEFAULT 0",
 		"ALTER TABLE synced_playlist_tracks ADD COLUMN album_id TEXT DEFAULT ''",
 		"ALTER TABLE synced_playlist_tracks ADD COLUMN artist_id TEXT DEFAULT ''",
+		"ALTER TABLE tracks ADD COLUMN isrc TEXT DEFAULT ''",
+		// Index depends on the migrated column, so it must come after.
+		"CREATE INDEX IF NOT EXISTS idx_isrc ON tracks(isrc)",
 		"ALTER TABLE synced_playlists ADD COLUMN synced INTEGER DEFAULT 1",
 	} {
 		db.Exec(m)
@@ -744,7 +763,8 @@ func upsertTrackFile(stmt *sql.Stmt, p string, now int64, force bool) int {
 		parseIntPrefix(tagFirst(tags, taglib.TrackNumber)),
 		parseIntPrefix(tagFirst(tags, taglib.DiscNumber)),
 		int(props.Length.Seconds()), int(props.Bitrate), int(props.SampleRate),
-		codec, st.Size(), releaseBucket(tags), now, mtime); err != nil {
+		codec, st.Size(), releaseBucket(tags),
+		strings.ToUpper(strings.TrimSpace(tagFirst(tags, taglib.ISRC))), now, mtime); err != nil {
 		return fileError
 	}
 	var tid int64
@@ -786,23 +806,23 @@ func ImportDownloadedFile(root, path string) {
 }
 
 const trackUpsertSQL = `INSERT INTO tracks
-	(path,title,artist,album_artist,album,album_id,genre,year,track_no,disc_no,duration,bitrate,sample_rate,codec,size,release_type,date_added,mtime)
-	VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+	(path,title,artist,album_artist,album,album_id,genre,year,track_no,disc_no,duration,bitrate,sample_rate,codec,size,release_type,isrc,date_added,mtime)
+	VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
 	ON CONFLICT(path) DO UPDATE SET
 	  title=excluded.title, artist=excluded.artist, album_artist=excluded.album_artist,
 	  album=excluded.album, album_id=excluded.album_id, genre=excluded.genre, year=excluded.year,
 	  track_no=excluded.track_no, disc_no=excluded.disc_no, duration=excluded.duration,
 	  bitrate=excluded.bitrate, sample_rate=excluded.sample_rate, codec=excluded.codec,
-	  size=excluded.size, release_type=excluded.release_type, mtime=excluded.mtime`
+	  size=excluded.size, release_type=excluded.release_type, isrc=excluded.isrc, mtime=excluded.mtime`
 
 const trackCols = `id,path,title,artist,album_artist,album,album_id,genre,year,track_no,disc_no,
-	duration,bitrate,sample_rate,codec,size,rating,play_count,date_added`
+	duration,bitrate,sample_rate,codec,size,rating,play_count,date_added,isrc`
 
 func scanTrack(rows *sql.Rows) (LibraryTrack, error) {
 	var t LibraryTrack
 	err := rows.Scan(&t.ID, &t.Path, &t.Title, &t.Artist, &t.AlbumArtist, &t.Album, &t.AlbumID,
 		&t.Genre, &t.Year, &t.TrackNo, &t.DiscNo, &t.Duration, &t.Bitrate, &t.SampleRate,
-		&t.Codec, &t.Size, &t.Rating, &t.PlayCount, &t.DateAdded)
+		&t.Codec, &t.Size, &t.Rating, &t.PlayCount, &t.DateAdded, &t.ISRC)
 	t.Artists = []TrackArtist{}
 	return t, err
 }
@@ -1054,8 +1074,40 @@ func GetLibraryAlbums(search, sort string, desc bool) ([]LibraryAlbum, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	return scanAlbums(rows)
+	out, err := scanAlbums(rows)
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	// Fold in virtual memberships: albums whose tracks (partly or wholly)
+	// live in other albums' folders via album_refs.
+	refRows, err := libDB.Query(`SELECT r.album_id, r.album, r.album_artist, MAX(r.year), COUNT(*), MIN(t.path)
+		FROM album_refs r JOIN tracks t ON t.id = r.track_id GROUP BY r.album_id`)
+	if err == nil {
+		index := map[string]int{}
+		for i := range out {
+			index[out[i].ID] = i
+		}
+		needle := strings.ToLower(strings.TrimSpace(search))
+		for refRows.Next() {
+			var a LibraryAlbum
+			if refRows.Scan(&a.ID, &a.Title, &a.AlbumArtist, &a.Year, &a.TrackCount, &a.CoverPath) != nil {
+				continue
+			}
+			if i, ok := index[a.ID]; ok {
+				out[i].TrackCount += a.TrackCount
+				continue
+			}
+			if needle != "" && !strings.Contains(strings.ToLower(a.Title), needle) &&
+				!strings.Contains(strings.ToLower(a.AlbumArtist), needle) {
+				continue
+			}
+			a.ReleaseType = "Albums"
+			out = append(out, a)
+		}
+		refRows.Close()
+	}
+	return out, nil
 }
 
 // GetArtistReleases splits an artist's releases into the ones they're the main
@@ -1176,6 +1228,48 @@ func GetTracksByIDs(ids []int64) ([]LibraryTrack, error) {
 	return out, nil
 }
 
+// FindTrackByISRC returns the library track that carries this recording, or
+// nil. The cross-album dedup key: the same ISRC on two albums is the same
+// recording; remixes/live/re-records carry different ISRCs.
+func FindTrackByISRC(isrc string) *LibraryTrack {
+	isrc = strings.ToUpper(strings.TrimSpace(isrc))
+	if libDB == nil || isrc == "" || strings.HasPrefix(strings.ToLower(isrc), "qobuz_") {
+		return nil
+	}
+	rows, err := libDB.Query("SELECT "+trackCols+" FROM tracks WHERE isrc=? LIMIT 1", isrc)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	if rows.Next() {
+		if t, err := scanTrack(rows); err == nil {
+			return &t
+		}
+	}
+	return nil
+}
+
+// AddAlbumRef links an existing library track into another album's view —
+// the virtual membership behind cross-album dedup.
+func AddAlbumRef(albumID, album, albumArtist, releaseDate string, trackNo, discNo int, trackID int64) {
+	if libDB == nil || strings.TrimSpace(albumID) == "" || trackID <= 0 {
+		return
+	}
+	libDB.Exec(`INSERT OR REPLACE INTO album_refs(album_id, album, album_artist, year, track_no, disc_no, track_id)
+		VALUES(?,?,?,?,?,?,?)`, albumID, album, albumArtist, parseYear(releaseDate), trackNo, discNo, trackID)
+}
+
+// DeleteAlbumRefs removes an album's virtual memberships (used when the
+// album itself is deleted; the referenced files belong to other albums and
+// are never touched).
+func DeleteAlbumRefs(albumID string) error {
+	if libDB == nil {
+		return fmt.Errorf("library not initialized")
+	}
+	_, err := libDB.Exec("DELETE FROM album_refs WHERE album_id=?", albumID)
+	return err
+}
+
 func GetAlbumTracks(albumID string) ([]LibraryTrack, error) {
 	if libDB == nil {
 		return nil, fmt.Errorf("library not initialized")
@@ -1196,6 +1290,44 @@ func GetAlbumTracks(albumID string) ([]LibraryTrack, error) {
 		out = append(out, t)
 	}
 	rows.Close()
+	// Borrowed tracks: recordings that live in another album's folder but are
+	// members of this album via album_refs.
+	if refRows, err := libDB.Query("SELECT track_id, track_no, disc_no FROM album_refs WHERE album_id=?", albumID); err == nil {
+		type refPos struct{ trackNo, discNo int }
+		refs := map[int64]refPos{}
+		ids := []int64{}
+		for refRows.Next() {
+			var id int64
+			var tn, dn int
+			if refRows.Scan(&id, &tn, &dn) == nil {
+				refs[id] = refPos{tn, dn}
+				ids = append(ids, id)
+			}
+		}
+		refRows.Close()
+		if len(ids) > 0 {
+			if borrowed, err := GetTracksByIDs(ids); err == nil {
+				for _, b := range borrowed {
+					if p, ok := refs[b.ID]; ok {
+						b.TrackNo, b.DiscNo = p.trackNo, p.discNo
+					}
+					b.Borrowed = true
+					byID[b.ID] = len(out)
+					out = append(out, b)
+				}
+				gosort.SliceStable(out, func(i, j int) bool {
+					if out[i].DiscNo != out[j].DiscNo {
+						return out[i].DiscNo < out[j].DiscNo
+					}
+					return out[i].TrackNo < out[j].TrackNo
+				})
+				byID = map[int64]int{}
+				for i := range out {
+					byID[out[i].ID] = i
+				}
+			}
+		}
+	}
 	if len(out) > 0 {
 		loadArtistsInto(out, byID)
 	}
@@ -1270,7 +1402,7 @@ type LibraryFolder struct {
 // roleSchemaVersion bumps whenever artist-role derivation changes (e.g. the
 // first-artist-is-primary rule). A mismatch forces one full tag re-read so
 // existing rows pick up the new rules; unchanged files are skipped otherwise.
-const roleSchemaVersion = 4
+const roleSchemaVersion = 5
 
 func RescanAllFolders(onProgress func(done, total int, current string)) (ScanResult, error) {
 	var agg ScanResult
@@ -1517,6 +1649,7 @@ func DeleteLibraryTracks(ids []int64) (int, error) {
 		}
 		libDB.Exec("DELETE FROM track_artists WHERE track_id = ?", id)
 		libDB.Exec("DELETE FROM playlist_tracks WHERE track_id = ?", id)
+		libDB.Exec("DELETE FROM album_refs WHERE track_id = ?", id)
 		libDB.Exec("DELETE FROM tracks WHERE id = ?", id)
 		deleted++
 	}

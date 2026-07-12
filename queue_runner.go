@@ -321,6 +321,30 @@ func (a *App) runDownloadQueue() {
 }
 
 func (a *App) processQueueItem(item backend.DownloadItem) {
+	// Cross-album recording dedup: if this exact recording (same ISRC)
+	// already lives in the library under another album, link it into this
+	// album instead of downloading a second copy. Different versions
+	// (remix/live/re-record) carry different ISRCs and are never deduped.
+	if item.AlbumID != "" {
+		isrc := strings.TrimSpace(item.ISRC)
+		if !strings.HasPrefix(strings.ToLower(isrc), "qobuz_") {
+			if isrc == "" && item.SpotifyID != "" {
+				isrc = backend.ResolveTrackISRC(item.SpotifyID)
+			}
+			if t := backend.FindTrackByISRC(isrc); t != nil {
+				if t.AlbumID != item.AlbumID {
+					backend.AddAlbumRef(item.AlbumID, item.AlbumName, item.AlbumArtist, item.ReleaseDate, item.TrackNo, item.DiscNo, t.ID)
+				}
+				note := "Same recording already in library"
+				if t.Album != "" {
+					note = "Same recording already in library on “" + t.Album + "” — linked to this album"
+				}
+				backend.SkipDownloadItemWithNote(item.ID, t.Path, note)
+				a.emit("library:changed", map[string]any{"kind": "albumref"})
+				return
+			}
+		}
+	}
 	rs := a.loadRunnerSettings()
 	a.backfillItemMetadata(&item)
 

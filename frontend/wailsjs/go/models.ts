@@ -430,6 +430,7 @@ export namespace backend {
 	    copyright?: string;
 	    publisher?: string;
 	    isrc?: string;
+	    album_id?: string;
 	    category?: string;
 	    upc?: string;
 	    position?: number;
@@ -467,6 +468,7 @@ export namespace backend {
 	        this.copyright = source["copyright"];
 	        this.publisher = source["publisher"];
 	        this.isrc = source["isrc"];
+	        this.album_id = source["album_id"];
 	        this.category = source["category"];
 	        this.upc = source["upc"];
 	        this.position = source["position"];
@@ -890,6 +892,8 @@ export namespace backend {
 	    rating: number;
 	    playCount: number;
 	    dateAdded: number;
+	    isrc: string;
+	    borrowed?: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new LibraryTrack(source);
@@ -917,6 +921,8 @@ export namespace backend {
 	        this.rating = source["rating"];
 	        this.playCount = source["playCount"];
 	        this.dateAdded = source["dateAdded"];
+	        this.isrc = source["isrc"];
+	        this.borrowed = source["borrowed"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
