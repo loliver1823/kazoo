@@ -1683,9 +1683,18 @@ func GetLibraryAlbumArtists(search, sort string, desc bool) ([]LibraryArtist, er
 }
 
 // resortArtists re-applies a grid's requested order after merge passes.
+// A leading "The " is ignored when alphabetizing — The Blues Brothers files
+// under B, like every library manager users come from.
 func resortArtists(out []LibraryArtist, sort string, desc bool) {
+	sortName := func(n string) string {
+		l := strings.ToLower(n)
+		if strings.HasPrefix(l, "the ") {
+			return l[4:]
+		}
+		return l
+	}
 	nameLess := func(i, j int) bool {
-		return strings.ToLower(out[i].Name) < strings.ToLower(out[j].Name)
+		return sortName(out[i].Name) < sortName(out[j].Name)
 	}
 	if sort == "name" {
 		gosort.SliceStable(out, func(i, j int) bool {
